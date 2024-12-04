@@ -10,7 +10,7 @@
   "handlers": {
     "stderr": {
       "class": "logging.StreamHandler",
-      "level": "WARNING",
+      "level": "INFO",
       "stream": "ext://sys.stderr",
       "formatter": "simple"
       },
@@ -18,7 +18,7 @@
       "class": "logging.handlers.RotatingFileHandler",
       "level": "DEBUG",
       "formatter": "simple",
-      "filename": "logs/auth.log",
+      "filename": "../logs/auth.log",
       "maxBytes": 100000,
       "backupCount": 3
     }
