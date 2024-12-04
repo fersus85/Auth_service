@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import ORJSONResponse
 
 from api.v1 import auth
@@ -29,6 +29,14 @@ app = FastAPI(
     openapi_url="/openapi.json",
     default_response_class=ORJSONResponse,
 )
+
+
+@app.middleware("http")
+async def log_stuff(request: Request, call_next):
+    response = await call_next(request)
+    logger.info(f"{response.status_code} {request.method} {request.url}")
+    return response
+
 
 # Просто для проверки работоспособности сервиса, потом уберём
 app.include_router(auth.router, prefix="/v1/auth", tags=["auth"])

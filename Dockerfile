@@ -2,15 +2,21 @@ FROM python:3.10 AS base
 
 WORKDIR /app/src
 
+RUN useradd -m auth_user \
+&& chown -R auth_user:auth_user /app
+
+USER auth_user
+
+ENV PATH=$PATH:/home/auth_user/.local/bin
+
 COPY ./requirements.txt /app/requirements.txt
 
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt \
+&& mkdir /app/logs
 
 COPY ./src /app/src
 
 COPY ./.env /app/src/.env
-
-RUN mkdir /app/logs
 
 FROM base AS test
 
