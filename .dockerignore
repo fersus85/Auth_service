@@ -1,0 +1,24 @@
+# Системные файлы
+.git/
+.node_modules/
+.idea/
+.vscode/
+
+# Временные файлы
+*.pyc
+__pycache__/
+*.log
+tmp/
+temp/
+
+# Результаты сборки
+dist/
+build/
+*.class
+*.o
+*.exe
+
+# Документация
+README.md
+*.md
+tests/

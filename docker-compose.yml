@@ -1,0 +1,55 @@
+name: Auth-Service
+
+services:
+
+  postgres:
+    image: postgres:16
+    env_file:
+      - ./.env
+    volumes:
+      - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d auth" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  redis:
+    image: redis:7.4.1
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - ./redisdata:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  fastapi-auth:
+    build:
+      context: .
+      target: deploy
+    image: fastapi
+    healthcheck:
+      test: curl -s http://fastapi-auth:8000/api/openapi >/dev/null || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27.2
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      fastapi-auth:
+        condition: service_healthy
+    restart: always
