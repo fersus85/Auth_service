@@ -5,7 +5,7 @@ services:
   postgres:
     image: postgres:16
     env_file:
-      - ./.env
+      - ./src/.env
     volumes:
       - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
