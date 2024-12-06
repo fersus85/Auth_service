@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "AuthService"
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    POSTGRES_SERVER: str
+    POSTGRES_HOST: str
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
             scheme="postgresql+asyncpg",
             username=self.POSTGRES_USER,
             password=self.POSTGRES_PASSWORD,
-            host=self.POSTGRES_SERVER,
+            host=self.POSTGRES_HOST,
             port=self.POSTGRES_PORT,
             path=self.POSTGRES_DB,
         )
