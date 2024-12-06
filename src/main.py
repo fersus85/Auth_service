@@ -1,5 +1,4 @@
 import logging
-from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import ORJSONResponse
@@ -7,16 +6,10 @@ from fastapi.responses import ORJSONResponse
 from api.v1 import auth
 from core.config import settings
 from core.log_config import setup_logging
+from lifespan import lifespan
 
 setup_logging()
 logger = logging.getLogger(__name__)
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    logger.debug("Successfully connected")
-    yield
-    logger.debug("Closing connections")
 
 
 app = FastAPI(
