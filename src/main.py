@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import ORJSONResponse
 
-from api.v1 import auth
+from api import router as api_router
 from core.config import settings
 from core.log_config import setup_logging
 from lifespan import lifespan
@@ -17,9 +17,8 @@ app = FastAPI(
     description="Auth movies service",
     version="1.0.0",
     lifespan=lifespan,
-    root_path="/api",
-    docs_url="/openapi",
-    openapi_url="/openapi.json",
+    docs_url="/api/openapi",
+    openapi_url="/api/openapi.json",
     default_response_class=ORJSONResponse,
 )
 
@@ -31,5 +30,4 @@ async def log_stuff(request: Request, call_next):
     return response
 
 
-# Просто для проверки работоспособности сервиса, потом уберём
-app.include_router(auth.router, prefix="/v1/auth", tags=["auth"])
+app.include_router(api_router, prefix="/api")
