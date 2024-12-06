@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -6,7 +5,7 @@ from pydantic import BaseModel
 
 class RoleBase(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class RoleFull(RoleBase):
@@ -22,4 +21,5 @@ class RoleRead(RoleFull):
 
 
 class RoleUpdate(RoleBase):
+    # если name is None, то менять не нужно
     name: str | None = None
