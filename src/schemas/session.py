@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class HistoryBase(BaseModel):
     id: UUID
-    last_logon: datetime | None = None
+    last_login: datetime | None = None
     device_info: str | None = None
 
 
