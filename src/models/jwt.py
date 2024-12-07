@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Self
+from typing import Self
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -14,7 +14,6 @@ class ProtoJWT(BaseModel):
     user_id: UUID = Field(..., description="UUID пользователя")
     iat: int = Field(..., description="Время создания токена в формате epoch")
     exp: int = Field(..., description="Время истечения токена в формате epoch")
-    roles: List[str] = Field(..., description="Список выданных ролей")
 
     @property
     def issued_at(self) -> datetime:
