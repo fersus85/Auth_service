@@ -22,5 +22,7 @@ class RoleRead(RoleFull):
 
 
 class RoleUpdate(RoleBase):
-    # если атрибут is None, то менять не нужно
+    # Если атрибут is None, то менять не нужно.
+    # Для разграничения None и пустого значения
+    # можно использовать exclude_unset=True
     name: str | None = None

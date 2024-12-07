@@ -32,6 +32,8 @@ class UserRead(UserBase):
 
 
 class UserUpdate(BaseModel):
-    # если атрибут is None, то менять не нужно
+    # Если атрибут is None, то менять не нужно.
+    # Для разграничения None и пустого значения
+    # можно использовать exclude_unset=True
     first_name: str | None = None
     last_name: str | None = None
