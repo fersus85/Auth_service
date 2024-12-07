@@ -27,13 +27,12 @@ class UserCreate(UserRole):
     password: str
 
 
-class UserRead(UserBase):
+class UserRead(UserFull):
     pass
 
 
 class UserUpdate(BaseModel):
     # Если атрибут is None, то менять не нужно.
-    # Для разграничения None и пустого значения
-    # можно использовать exclude_unset=True
     first_name: str | None = None
     last_name: str | None = None
+    password: str | None = None
