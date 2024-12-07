@@ -10,6 +10,22 @@ from models.base import Base
 
 
 class ActiveSession(Base):
+    """
+    Таблица активных сессий пользователей.
+
+    Поля:
+    - id: Уникальный идентификатор сессии (UUID).
+    - user_id: Идентификатор пользователя (ForeignKey на таблицу user).
+    - refresh_token_hash: Хэш refresh-токена,
+        используемого для обновления доступа.
+    - issued_at: Время выпуска refresh-токена.
+    - expires_at: Время истечения refresh-токена.
+    - device_info: Информация об устройстве, с которого инициирована сессия.
+
+    Отношения:
+    - user: Связь с таблицей user (обратное отношение через `active_session`).
+    """
+
     __tablename__ = "active_session"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -27,6 +43,29 @@ class ActiveSession(Base):
 
 
 class SessionHistory(Base):
+    """
+    Таблица истории сессий пользователей.
+
+    Поля:
+    - id: Уникальный идентификатор записи истории сессии (UUID).
+    - user_id: Идентификатор пользователя (ForeignKey на таблицу user).
+        Может быть NULL, если пользователь удалён.
+    - refresh_token_hash: Хэш refresh-токена.
+        Может быть NULL, если лог связан с access-токеном.
+    - issued_at: Время выпуска refresh-токена.
+        Может быть NULL, если лог связан с access-токеном.
+    - expires_at: Время истечения refresh-токена.
+        Может быть NULL, если лог связан с access-токеном.
+    - device_info: Информация об устройстве, с которого инициирована сессия.
+    - jti: Уникальный идентификатор access-токена.
+        Может быть NULL, если лог связан с обновлением refresh-токена.
+    - last_login: Время последнего входа пользователя под access-токеном.
+        Может быть NULL, если лог связан с обновлением refresh-токена.
+
+    Отношения:
+    - user: Связь с таблицей user (обратное отношение через `session_history`).
+    """
+
     __tablename__ = "session_history"
 
     id: Mapped[uuid.UUID] = mapped_column(

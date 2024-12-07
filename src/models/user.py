@@ -4,16 +4,7 @@ import uuid
 from datetime import datetime
 from typing import List
 
-from sqlalchemy import (
-    UUID,
-    Column,
-    DateTime,
-    ForeignKey,
-    String,
-    Table,
-    Text,
-    func,
-)
+from sqlalchemy import UUID, Column, DateTime, ForeignKey, String, Table, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models import session
@@ -28,6 +19,24 @@ user_roles = Table(
 
 
 class User(Base):
+    """
+    Таблица пользователей.
+
+    Поля:
+    - id: Уникальный идентификатор пользователя (UUID).
+    - created_at: Дата и время создания записи.
+    - login: Уникальный логин пользователя.
+    - password_hash: Хэш пароля пользователя.
+    - first_name: Имя пользователя (опционально).
+    - last_name: Фамилия пользователя (опционально).
+
+    Отношения:
+    - roles: Связь M2M через промежуточную таблицу
+        `user_roles` с таблицей ролей.
+    - active_session: Связь с таблицей `active_session`.
+    - session_history: Связь с таблицей `session_history`.
+    """
+
     __tablename__ = "user"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -51,12 +60,25 @@ class User(Base):
 
 
 class Role(Base):
+    """
+    Таблица ролей пользователей.
+
+    Поля:
+    - id: Уникальный идентификатор роли (UUID).
+    - name: Уникальное название роли.
+    - description: Описание роли (опционально).
+
+    Отношения:
+    - users: Связь M2M через промежуточную таблицу
+        `user_roles` с таблицей пользователей.
+    """
+
     __tablename__ = "role"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(255), unique=True)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    description: Mapped[str | None]
 
     users: Mapped[List[User]] = relationship(secondary=user_roles)

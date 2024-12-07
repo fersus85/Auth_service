@@ -22,6 +22,7 @@ class UserRole(UserFull):
     roles: List[RoleFull] | None = None
 
 
+# Ниже User для CRUD
 class UserCreate(UserRole):
     password: str
 
@@ -31,5 +32,6 @@ class UserRead(UserBase):
 
 
 class UserUpdate(BaseModel):
+    # если атрибут is None, то менять не нужно
     first_name: str | None = None
     last_name: str | None = None

@@ -12,6 +12,7 @@ class RoleFull(RoleBase):
     id: UUID
 
 
+# Ниже Role для CRUD
 class RoleCreate(RoleBase):
     pass
 
@@ -21,5 +22,5 @@ class RoleRead(RoleFull):
 
 
 class RoleUpdate(RoleBase):
-    # если name is None, то менять не нужно
+    # если атрибут is None, то менять не нужно
     name: str | None = None
