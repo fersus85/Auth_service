@@ -2,12 +2,7 @@ FROM python:3.10 AS base
 
 WORKDIR /app/src
 
-RUN useradd -m auth_user \
-&& chown -R auth_user:auth_user /app
-
-USER auth_user
-
-ENV PATH=$PATH:/home/auth_user/.local/bin
+RUN useradd -m auth_user
 
 COPY ./requirements.txt /app/requirements.txt
 
@@ -17,6 +12,12 @@ RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt \
 COPY ./src /app/src
 
 COPY ./.env /app/src/.env
+
+RUN chown -R auth_user:auth_user /app
+
+USER auth_user
+
+ENV PATH=$PATH:/home/auth_user/.local/bin
 
 FROM base AS test
 
