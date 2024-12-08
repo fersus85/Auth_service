@@ -32,7 +32,12 @@ class UserRead(UserFull):
 
 
 class UserUpdate(BaseModel):
-    # Если атрибут is None, то менять не нужно.
+    """
+    Модель для частичного обновления данных пользователя.
+
+    Поля, установленные в None, не изменяются.
+    """
+
     first_name: str | None = None
     last_name: str | None = None
     password: str | None = None

@@ -10,7 +10,7 @@ class ProtoJWT(BaseModel):
     Модель прототипа JWT токенов
     """
 
-    gti: UUID = Field(..., description="UUID токена")
+    jti: UUID = Field(..., description="UUID токена")
     user_id: UUID = Field(..., description="UUID пользователя")
     iat: int = Field(..., description="Время создания токена в формате epoch")
     exp: int = Field(..., description="Время истечения токена в формате epoch")
