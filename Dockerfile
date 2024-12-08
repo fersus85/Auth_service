@@ -31,4 +31,6 @@ FROM base AS deploy
 
 EXPOSE 8000
 
-ENTRYPOINT ["gunicorn", "main:app", "--bind", "0.0.0.0:8000", "-k", "uvicorn_worker.UvicornWorker"]
+ENTRYPOINT ["sh", "start_app.sh"]
+
+CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:8000", "-k", "uvicorn_worker.UvicornWorker"]
