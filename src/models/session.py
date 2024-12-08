@@ -3,11 +3,15 @@ from __future__ import annotations
 import enum
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import UUID, DateTime, ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
+
+if TYPE_CHECKING:
+    from models.user import User
 
 
 class ActiveSession(Base):
@@ -40,7 +44,9 @@ class ActiveSession(Base):
     expires_at: Mapped[datetime]
     device_info: Mapped[str]
 
-    user: Mapped[user.User] = relationship(back_populates="active_session")
+    user: Mapped["User"] = relationship(
+        "User", back_populates="active_session"
+    )
 
     __table_args__ = (
         Index("btree_user_id_device_info", "user_id", "device_info"),
@@ -97,6 +103,6 @@ class SessionHistory(Base):
         DateTime, server_default=func.now()
     )
 
-    user: Mapped[user.User | None] = relationship(
-        back_populates="session_history"
+    user: Mapped[Optional["User"]] = relationship(
+        "User", back_populates="session_history"
     )

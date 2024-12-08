@@ -7,6 +7,9 @@ class RoleBase(BaseModel):
     name: str
     description: str | None = None
 
+    class Config:
+        from_attributes = True
+
 
 class RoleFull(RoleBase):
     id: UUID

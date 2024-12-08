@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy import UUID, Column, DateTime, ForeignKey, String, Table, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from models import session
 from models.base import Base
+
+if TYPE_CHECKING:
+    from models.session import ActiveSession, SessionHistory
 
 user_roles = Table(
     "user_roles",
@@ -50,12 +52,14 @@ class User(Base):
     first_name: Mapped[str] = mapped_column(String(255), default="")
     last_name: Mapped[str] = mapped_column(String(255), default="")
 
-    roles: Mapped[List[Role]] = relationship(secondary=user_roles)
-    active_session: Mapped[List[session.ActiveSession]] = relationship(
-        back_populates="user"
+    roles: Mapped[List["Role"]] = relationship(
+        "Role", secondary=user_roles, back_populates="users"
     )
-    session_history: Mapped[List[session.SessionHistory]] = relationship(
-        back_populates="user"
+    active_session: Mapped[List["ActiveSession"]] = relationship(
+        "ActiveSession", back_populates="user"
+    )
+    session_history: Mapped[List["SessionHistory"]] = relationship(
+        "SessionHistory", back_populates="user"
     )
 
 
@@ -81,4 +85,6 @@ class Role(Base):
     name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     description: Mapped[str] = mapped_column(String, default="")
 
-    users: Mapped[List[User]] = relationship(secondary=user_roles)
+    users: Mapped[List["User"]] = relationship(
+        "User", secondary=user_roles, back_populates="roles"
+    )
