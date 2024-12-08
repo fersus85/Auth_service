@@ -4,12 +4,9 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from src.schemas.role import RoleFull
-
 
 class UserBase(BaseModel):
     login: str
-    created_at: datetime
     first_name: str | None = None
     last_name: str | None = None
 
@@ -19,10 +16,11 @@ class UserBase(BaseModel):
 
 class UserFull(UserBase):
     id: UUID
+    created_at: datetime | None = None
 
 
-class UserRole(UserFull):
-    roles: List[RoleFull] | None = None
+class UserRole(UserBase):
+    roles: List[str] | None = None
 
 
 # Ниже User для CRUD
