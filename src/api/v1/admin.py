@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, status, Depends
 from pydantic import BaseModel
 
-from schemas.role import RoleCreate,RoleRead
+from schemas.role import RoleCreate, RoleRead
 from services.role.role_service import get_role_service, RoleService
 import logging
 
@@ -30,12 +30,13 @@ async def role_info(role_id: str) -> Any:
     summary="Role creation",
     description="Role creation endpoint",
 )
-async def create_role(role_create: RoleCreate, role_service: RoleService = Depends(get_role_service)) -> RoleRead:
+async def create_role(
+    role_create: RoleCreate,
+    role_service: RoleService = Depends(get_role_service),
+) -> RoleRead:
     result = await role_service.create(role_create)
     logger.info(f"create_role result = {result}")
     return result
-
-
 
 
 @router.put(

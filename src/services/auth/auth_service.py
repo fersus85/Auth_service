@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, insert, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -75,10 +75,10 @@ class AuthService:
             )
 
         if not check_password_hash(user.password_hash, user_login.password):
-            logger.error(f"Password is incorrect")
+            logger.error("Password is incorrect")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Password is incorrect",
+                detail="Password is incorrect",
             )
 
         # генерируем новую пару токенов
@@ -150,10 +150,10 @@ class AuthService:
             user_id, user_agent, refresh_token
         )
         if not check:
-            logger.error(f"Refresh token is invalid")
+            logger.error("Refresh token is invalid")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Refresh token is invalid",
+                detail="Refresh token is invalid",
             )
 
         # удаляем активные сессии с этого девайса (удаляем refresh_token)
@@ -343,7 +343,8 @@ class AuthService:
                 detail=f"User {user.login} already exists",
             )
 
-        # присваиваем юзеру указанные роли путём вставки связей в content.user_roles
+        # присваиваем юзеру указанные роли
+        # путём вставки связей в content.user_roles
         for role_id in role_id_list:
             try:
                 stmt = insert(

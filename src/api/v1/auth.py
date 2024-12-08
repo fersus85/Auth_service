@@ -136,12 +136,13 @@ async def refresh_token(
     auth_service: AuthService = Depends(get_auth_service),
 ) -> UserLoginResponse:
     """
-    Возвращает новую пару access_token/refresh_token токенов в обмен на корректный refresh_token
+    Возвращает новую пару access_token/refresh_token токенов
+    в обмен на корректный refresh_token
     """
 
     access_token = request.cookies.get("access_token")
     refresh_token = request.cookies.get("refresh_token")
-    
+
     result = await auth_service.refresh_token(
         user_id, user_agent, access_token, refresh_token
     )
@@ -152,7 +153,7 @@ async def refresh_token(
     response.set_cookie(
         key="refresh_token", value=result.refresh_token, httponly=True
     )
-    
+
     return {
         "access_token": result.access_token,
         "refresh_token": result.refresh_token,
@@ -179,7 +180,7 @@ async def logout_user(
     refresh_token = request.cookies.get("refresh_token")
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
-    result = await auth_service.logout_user(
+    await auth_service.logout_user(
         user_id, user_agent, access_token, refresh_token
     )
     return None

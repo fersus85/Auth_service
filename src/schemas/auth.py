@@ -42,7 +42,6 @@ class RefreshJWT(ProtoJWT):
     pass
 
 
-
 class UserLogin(BaseModel):
     login: str
     password: str
@@ -51,4 +50,3 @@ class UserLogin(BaseModel):
 class UserLoginResponse(BaseModel):
     access_token: str
     refresh_token: str
-    
