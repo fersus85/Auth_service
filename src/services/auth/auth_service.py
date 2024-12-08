@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
@@ -83,13 +83,15 @@ class AuthService:
     async def login_user(
         self, user_login: UserLogin, user_agent: str
     ) -> UserLoginResponse:
-        login = user_login.login
-        logger.info(f"login_user, login: {login}, user_agent: {user_agent}")
 
-        stmt = select(User).where(User.login == login)
-        user = await self.db.scalar(stmt)
+        logger.info(
+            f"login_user, login: {user_login.login}, user_agent: {user_agent}"
+        )
+
+        user = await self._get_user_by_login(user_login.login)
+
         if not user:
-            logger.error(f"User {login} not found")
+            logger.error(f"User {user_login.login} not found")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=f"User {user_login.login} not found",
@@ -102,6 +104,84 @@ class AuthService:
                 detail=f"Password is incorrect",
             )
 
+        # генерируем новую пару токенов
+        (access_token_encoded_jwt, refresh_token_encoded_jwt) = (
+            await self._generate_new_tokens(user.id)
+        )
+
+        # удаляем другие активные сессии с этого же девайса
+        await self._delete_active_session(user.id, user_agent)
+
+        # формируем и вставляем инф-ию о новой сессии
+        await self._insert_new_session(
+            user.id, user_agent, refresh_token_encoded_jwt
+        )
+
+        return UserLoginResponse(
+            access_token=access_token_encoded_jwt,
+            refresh_token=refresh_token_encoded_jwt,
+        )
+
+    async def logout_user(
+        self,
+        user_id: str,
+        user_agent: str,
+        access_token: str,
+        refresh_token: str,
+    ) -> None:
+
+        logger.info(
+            f"logout_user, user_id: {user_id}, user_agent: {user_agent}"
+        )
+
+        # удаляем активные сессии с этого девайса
+        await self._delete_active_session(user_id, user_agent)
+
+        # добавляем access_token в чёрный список в Redis
+        await self._blacklist_access_token(access_token)
+
+        # логгируем событие выхода
+        await self._insert_logout_to_session_hist(
+            user_id, user_agent, refresh_token
+        )
+
+        return None
+
+    async def refresh_token(
+        self,
+        user_id: str,
+        user_agent: str,
+        access_token: str,
+        refresh_token: str,
+        cacher: AbstractCache,
+    ) -> UserLoginResponse:
+
+        logger.info(
+            f"refresh_token, user_id: {user_id}, user_agent: {user_agent}"
+        )
+
+        return None
+
+    async def _get_user_by_login(self, login: str) -> User:
+
+        stmt = select(User).where(User.login == login)
+        user = await self.db.scalar(stmt)
+        return user
+
+    async def _delete_active_session(
+        self, user_id: str, user_agent: str
+    ) -> None:
+
+        # удаляем другие активные сессии с этого же девайса
+        stmt = delete(ActiveSession).where(
+            ActiveSession.user_id == user_id
+            and ActiveSession.device_info == user_agent
+        )
+        await self.db.execute(stmt)
+        await self.db.commit()
+
+    async def _generate_new_tokens(self, user_id: UUID):
+
         now = datetime.now()
         expire_for_access_token = now + timedelta(
             minutes=ACCESS_TOKEN_EXPIRE_TIME_M
@@ -111,7 +191,7 @@ class AuthService:
         )
 
         access_token_dict = {
-            "user_id": str(user.id),
+            "user_id": str(user_id),
             "iat": now.timestamp(),
         }
         refresh_token_dict = access_token_dict.copy()
@@ -127,69 +207,67 @@ class AuthService:
             access_token_dict, SECRET_KEY, algorithm=ALGORITHM
         )
         refresh_token_encoded_jwt = jwt.encode(
-            access_token_dict, SECRET_KEY, algorithm=ALGORITHM
+            refresh_token_dict, SECRET_KEY, algorithm=ALGORITHM
         )
 
-        sessin_dict = {
-            "user_id": user.id,
+        return (access_token_encoded_jwt, refresh_token_encoded_jwt)
+
+    async def _decode_jwt_token(self, encoded_jwt_token: str):
+        token_dict = jwt.decode(
+            encoded_jwt_token, SECRET_KEY, algorithms=[ALGORITHM]
+        )
+        return token_dict
+
+    async def _insert_new_session(
+        self, user_id: UUID, user_agent: str, refresh_token_encoded_jwt: str
+    ):
+
+        refresh_token_dict = await self._decode_jwt_token(
+            refresh_token_encoded_jwt
+        )
+
+        session_dict = {
+            "user_id": user_id,
             "refresh_token_hash": generate_password_hash(
                 refresh_token_encoded_jwt
             ),
-            "issued_at": now,
-            "expires_at": expire_for_refresh_token,
+            "issued_at": datetime.fromtimestamp(refresh_token_dict["iat"]),
+            "expires_at": datetime.fromtimestamp(refresh_token_dict["exp"]),
             "device_info": user_agent,
         }
 
-        # удаляем другие активные сессии с этого же девайса
-        stmt = delete(ActiveSession).where(
-            ActiveSession.user_id == user.id
-            and ActiveSession.device_info == user_agent
-        )
-        await self.db.execute(stmt)
-
-        # формируем и вставляем инф-ию о новой сессии
-        session = ActiveSession(**sessin_dict)
-        sessin_dict["name"] = SessionHistoryChoices.LOGIN_WITH_PASSWORD
-        session_hist = SessionHistory(**sessin_dict)
+        session = ActiveSession(**session_dict)
+        session_dict["name"] = SessionHistoryChoices.LOGIN_WITH_PASSWORD
+        session_hist = SessionHistory(**session_dict)
         self.db.add(session)
         self.db.add(session_hist)
-
         await self.db.commit()
 
-        return UserLoginResponse(
-            access_token=access_token_encoded_jwt,
-            refresh_token=refresh_token_encoded_jwt,
+        return None
+
+    async def _blacklist_access_token(self, encoded_jwt_token: str):
+
+        access_token_dict = await self._decode_jwt_token(encoded_jwt_token)
+
+        access_token_id = access_token_dict["jti"]
+        await self.cacher.set(
+            f"blacklist:{access_token_id}",
+            access_token_dict["user_id"],
+            ACCESS_TOKEN_EXPIRE_TIME_M * 60,
         )
 
-    async def logout_user(
-        self,
-        user_id: str,
-        user_agent: str,
-        access_token: str,
-        refresh_token: str,
-        cacher: AbstractCache,
-    ) -> None:
+        # проверка записи
+        data = await self.cacher.get(f"blacklist:{access_token_id}")
+        logger.info(f"cacher.get result: {data}")
 
-        logger.info(
-            f"logout_user, user_id: {user_id}, user_agent: {user_agent}"
-        )
+    async def _insert_logout_to_session_hist(
+        self, user_id: UUID, user_agent: str, refresh_token: str
+    ):
 
-        # удаляем активные сессии с этого девайса
-        stmt = delete(ActiveSession).where(
-            ActiveSession.user_id == user_id
-            and ActiveSession.device_info == user_agent
-        )
-        await self.db.execute(stmt)
-
-        access_token_dict = jwt.decode(
-            access_token, SECRET_KEY, algorithms=[ALGORITHM]
-        )
-        refresh_token_dict = jwt.decode(
-            refresh_token, SECRET_KEY, algorithms=[ALGORITHM]
-        )
+        refresh_token_dict = await self._decode_jwt_token(refresh_token)
 
         sessin_dict = {
-            "user_id": user_id,
+            "user_id": str(user_id),
             "refresh_token_hash": generate_password_hash(refresh_token),
             "issued_at": datetime.fromtimestamp(refresh_token_dict["iat"]),
             "expires_at": datetime.fromtimestamp(refresh_token_dict["exp"]),
@@ -202,20 +280,6 @@ class AuthService:
         self.db.add(session_hist)
 
         await self.db.commit()
-
-        # добавляем access_token в чёрный список в Redis
-        access_token_id = access_token_dict["jti"]
-        await cacher.set(
-            f"blacklist:{access_token_id}",
-            user_id,
-            ACCESS_TOKEN_EXPIRE_TIME_M * 60,
-        )
-
-        # проверка записи
-        # data = await cacher.get(f"blacklist:{access_token_id}")
-        # logger.info(f"cacher.get result: {data}")
-
-        return None
 
 
 def get_auth_service(

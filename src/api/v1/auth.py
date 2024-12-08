@@ -120,12 +120,36 @@ async def social_login() -> BaseModel:
 @router.post(
     "/token/refresh",
     status_code=status.HTTP_200_OK,
-    response_model=BaseModel,
+    response_model=UserLoginResponse,
     summary="New access and refresh tokens",
     description="Get new access and refresh tokens",
 )
-async def refresh_token() -> BaseModel:
-    return {}
+async def refresh_token(
+    request: Request,
+    response: Response,
+    user_id: str = Depends(get_current_user),
+    user_agent: Annotated[str | None, Header()] = None,
+    auth_service: AuthService = Depends(get_auth_service),
+) -> UserLoginResponse:
+    """
+    Возвращает новую пару access_token/refresh_token токенов в обмен на корректный refresh_token
+    """
+    access_token = request.cookies.get("access_token")
+    refresh_token = request.cookies.get("refresh_token")
+    result = await auth_service.refresh_token(
+        user_id, user_agent, access_token, refresh_token
+    )
+    logger.info(f"refresh_token result = {result}")
+    response.set_cookie(
+        key="access_token", value=result.access_token, httponly=True
+    )
+    response.set_cookie(
+        key="refresh_token", value=result.refresh_token, httponly=True
+    )
+    return {
+        "access_token": result.access_token,
+        "refresh_token": result.refresh_token,
+    }
 
 
 @router.post(
@@ -140,7 +164,6 @@ async def logout_user(
     user_id: str = Depends(get_current_user),
     user_agent: Annotated[str | None, Header()] = None,
     auth_service: AuthService = Depends(get_auth_service),
-    cacher: AbstractCache = Depends(get_cacher),
 ) -> None:
     """
     Выход пользователя - удаление токенов.
@@ -150,7 +173,7 @@ async def logout_user(
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     result = await auth_service.logout_user(
-        user_id, user_agent, access_token, refresh_token, cacher
+        user_id, user_agent, access_token, refresh_token
     )
     return None
 
