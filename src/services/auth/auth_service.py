@@ -46,38 +46,14 @@ class AuthService:
         password = user_create_dict.pop("password")
         user_create_dict["password_hash"] = generate_password_hash(password)
 
-        # здесь мы формируем список ID ролей из списка имён ролей
-        role_id_list = []
-        role_names = user_create_dict.pop("roles")
-        for role_name in role_names:
-            logger.info(f"role_name: {role_name}")
-            role = await role_service.get_by_name(role_name)
-            if role:
-                role_id_list.append(role.id)
+        # формируем список ID ролей из списка имён ролей
+        role_id_list = await self._get_role_ids_from_names(
+            user_create_dict.pop("roles"), role_service
+        )
 
         user = User(**user_create_dict)
 
-        try:
-            self.db.add(user)
-            await self.db.commit()
-            await self.db.refresh(user)
-        except IntegrityError as e:
-            logger.error(str(e))
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"User {user.login} already exists",
-            )
-
-        # присваиваем юзеру указанные роли путём вставки связей в content.user_roles
-        for role_id in role_id_list:
-            try:
-                stmt = insert(
-                    Role.__table__.metadata.tables["content.user_roles"]
-                ).values(role_id=role_id, user_id=user.id)
-                await self.db.execute(stmt)
-                await self.db.commit()
-            except Exception as e:
-                logger.error(str(e))
+        user = await self._add_user_to_db(user, role_id_list)
 
         return user
 
@@ -118,7 +94,10 @@ class AuthService:
             user.id, user_agent, refresh_token_encoded_jwt
         )
         await self._insert_event_to_session_hist(
-            user.id, user_agent, refresh_token_encoded_jwt, SessionHistoryChoices.LOGIN_WITH_PASSWORD
+            user.id,
+            user_agent,
+            refresh_token_encoded_jwt,
+            SessionHistoryChoices.LOGIN_WITH_PASSWORD,
         )
 
         return UserLoginResponse(
@@ -146,7 +125,10 @@ class AuthService:
 
         # логгируем событие выхода
         await self._insert_event_to_session_hist(
-            user_id, user_agent, refresh_token, SessionHistoryChoices.USER_LOGOUT
+            user_id,
+            user_agent,
+            refresh_token,
+            SessionHistoryChoices.USER_LOGOUT,
         )
 
         return None
@@ -164,7 +146,9 @@ class AuthService:
         )
 
         # проверяем, что данный refresh_token действительно есть в БД
-        check = await self._check_refresh_token_in_active_session(user_id, user_agent, refresh_token)
+        check = await self._check_refresh_token_in_active_session(
+            user_id, user_agent, refresh_token
+        )
         if not check:
             logger.error(f"Refresh token is invalid")
             raise HTTPException(
@@ -190,7 +174,10 @@ class AuthService:
 
         # логгируем событие рефреша
         await self._insert_event_to_session_hist(
-            user_id, user_agent, refresh_token, SessionHistoryChoices.REFRESH_TOKEN_UPDATE
+            user_id,
+            user_agent,
+            refresh_token,
+            SessionHistoryChoices.REFRESH_TOKEN_UPDATE,
         )
 
         return UserLoginResponse(
@@ -198,15 +185,16 @@ class AuthService:
             refresh_token=refresh_token_encoded_jwt,
         )
 
-
-
-    async def _check_refresh_token_in_active_session(self, user_id: UUID, user_agent: str, refresh_token: str):
-        refresh_token_dict = await self._decode_jwt_token(
-            refresh_token
-        )
+    async def _check_refresh_token_in_active_session(
+        self, user_id: UUID, user_agent: str, refresh_token: str
+    ):
+        refresh_token_dict = await self._decode_jwt_token(refresh_token)
         refresh_token_id = refresh_token_dict["jti"]
 
-        stmt = select(ActiveSession).where(ActiveSession.user_id == user_id and ActiveSession.refresh_token_id == refresh_token_id)
+        stmt = select(ActiveSession).where(
+            ActiveSession.user_id == user_id
+            and ActiveSession.refresh_token_id == refresh_token_id
+        )
         sess = await self.db.scalar(stmt)
 
         if not sess:
@@ -304,10 +292,11 @@ class AuthService:
         )
 
     async def _insert_event_to_session_hist(
-        self, user_id: UUID, 
-        user_agent: str, 
+        self,
+        user_id: UUID,
+        user_agent: str,
         refresh_token_encoded_jwt: str,
-        event: SessionHistoryChoices
+        event: SessionHistoryChoices,
     ):
 
         refresh_token_dict = await self._decode_jwt_token(
@@ -320,14 +309,53 @@ class AuthService:
             "issued_at": datetime.fromtimestamp(refresh_token_dict["iat"]),
             "expires_at": datetime.fromtimestamp(refresh_token_dict["exp"]),
             "device_info": user_agent,
-            "name": event
+            "name": event,
         }
 
         session_hist = SessionHistory(**session_dict)
         self.db.add(session_hist)
         await self.db.commit()
         return None
-    
+
+    async def _get_role_ids_from_names(
+        self, role_names: list, role_service: RoleService
+    ):
+
+        role_id_list = []
+        for role_name in role_names:
+            logger.info(f"role_name: {role_name}")
+            role = await role_service.get_by_name(role_name)
+            if role:
+                role_id_list.append(role.id)
+
+        return role_id_list
+
+    async def _add_user_to_db(self, user: User, role_id_list: list):
+
+        try:
+            self.db.add(user)
+            await self.db.commit()
+            await self.db.refresh(user)
+        except IntegrityError as e:
+            logger.error(str(e))
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"User {user.login} already exists",
+            )
+
+        # присваиваем юзеру указанные роли путём вставки связей в content.user_roles
+        for role_id in role_id_list:
+            try:
+                stmt = insert(
+                    Role.__table__.metadata.tables["content.user_roles"]
+                ).values(role_id=role_id, user_id=user.id)
+                await self.db.execute(stmt)
+                await self.db.commit()
+            except Exception as e:
+                logger.error(str(e))
+
+        return user
+
 
 def get_auth_service(
     db: AsyncSession = Depends(get_db),
@@ -345,14 +373,16 @@ def get_access_token_from_cookies(request: Request):
 
     if not token:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token not found"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Access token not found",
         )
 
     return token
 
 
-
-async def get_user_id_from_access_token(access_token: str = Depends(get_access_token_from_cookies)):
+async def get_user_id_from_access_token(
+    access_token: str = Depends(get_access_token_from_cookies),
+):
 
     try:
         payload = jwt.decode(access_token, SECRET_KEY, algorithms=ALGORITHM)
@@ -385,12 +415,16 @@ def get_refresh_token_from_cookies(request: Request):
 
     if not token:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token not found"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not found",
         )
 
     return token
 
-async def get_user_id_from_refresh_token(refresh_token: str = Depends(get_refresh_token_from_cookies)):
+
+async def get_user_id_from_refresh_token(
+    refresh_token: str = Depends(get_refresh_token_from_cookies),
+):
 
     try:
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=ALGORITHM)
