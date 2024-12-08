@@ -1,12 +1,29 @@
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    Header,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.casher import AbstractCache, get_cacher
 from db.postrges_db.psql import get_db
+from schemas.auth import UserLogin, UserLoginResponse
+from schemas.user import UserCreate, UserRead
+from services.auth.auth_service import (
+    AuthService,
+    get_auth_service,
+    get_current_user,
+)
+from services.role.role_service import RoleService, get_role_service
 
 logger = logging.getLogger(__name__)
 
@@ -41,23 +58,52 @@ async def auth(
 @router.post(
     "/signup",
     status_code=status.HTTP_201_CREATED,
-    response_model=BaseModel,
+    response_model=UserRead,
     summary="User registration",
     description="User registration endpoint",
 )
-async def signup_user() -> BaseModel:
-    return {}
+async def signup_user(
+    user_create: UserCreate,
+    auth_service: AuthService = Depends(get_auth_service),
+    role_service: RoleService = Depends(get_role_service),
+) -> UserRead:
+    """
+    Регистрация нового пользователя
+    """
+    result = await auth_service.signup_user(user_create, role_service)
+    logger.info(f"signup_user result = {result}")
+    return result
 
 
 @router.post(
     "/login",
     status_code=status.HTTP_200_OK,
-    response_model=BaseModel,
+    response_model=UserLoginResponse,
     summary="User login",
     description="User login endpoint returns access and refresh tokens",
 )
-async def login_user() -> BaseModel:
-    return {}
+async def login_user(
+    user_login: UserLogin,
+    response: Response,
+    user_agent: Annotated[str | None, Header()] = None,
+    auth_service: AuthService = Depends(get_auth_service),
+) -> UserLoginResponse:
+    """
+    Аутентификация пользователя по логину и паролю.
+    Выдача токенов.
+    """
+    result = await auth_service.login_user(user_login, user_agent)
+    logger.info(f"login_user result = {result}")
+    response.set_cookie(
+        key="access_token", value=result.access_token, httponly=True
+    )
+    response.set_cookie(
+        key="refresh_token", value=result.refresh_token, httponly=True
+    )
+    return {
+        "access_token": result.access_token,
+        "refresh_token": result.refresh_token,
+    }
 
 
 @router.post(
@@ -84,13 +130,29 @@ async def refresh_token() -> BaseModel:
 
 @router.post(
     "/logout",
-    status_code=status.HTTP_200_OK,
-    response_model=BaseModel,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="User logout",
     description="User logout endpoint",
 )
-async def logout_user() -> BaseModel:
-    return {}
+async def logout_user(
+    request: Request,
+    response: Response,
+    user_id: str = Depends(get_current_user),
+    user_agent: Annotated[str | None, Header()] = None,
+    auth_service: AuthService = Depends(get_auth_service),
+    cacher: AbstractCache = Depends(get_cacher),
+) -> None:
+    """
+    Выход пользователя - удаление токенов.
+    """
+    access_token = request.cookies.get("access_token")
+    refresh_token = request.cookies.get("refresh_token")
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+    result = await auth_service.logout_user(
+        user_id, user_agent, access_token, refresh_token, cacher
+    )
+    return None
 
 
 @router.post(

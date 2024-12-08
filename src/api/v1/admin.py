@@ -1,7 +1,13 @@
 from typing import Any
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Depends
 from pydantic import BaseModel
+
+from schemas.role import RoleCreate,RoleRead
+from services.role.role_service import get_role_service, RoleService
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/role", tags=["Admin"])
 
@@ -19,13 +25,17 @@ async def role_info(role_id: str) -> Any:
 
 @router.post(
     "/",
-    response_model=BaseModel,
+    response_model=RoleRead,
     status_code=status.HTTP_201_CREATED,
     summary="Role creation",
     description="Role creation endpoint",
 )
-async def create_role() -> BaseModel:
-    return {}
+async def create_role(role_create: RoleCreate, role_service: RoleService = Depends(get_role_service)) -> RoleRead:
+    result = await role_service.create(role_create)
+    logger.info(f"create_role result = {result}")
+    return result
+
+
 
 
 @router.put(

@@ -1,0 +1,277 @@
+import logging
+from datetime import datetime, timedelta
+from uuid import uuid4
+
+import jwt
+from fastapi import Depends, HTTPException, Request, status
+from sqlalchemy import delete, insert, select, update
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from db.casher import AbstractCache, get_cacher
+from db.postrges_db.psql import get_db
+from models.session import ActiveSession, SessionHistory, SessionHistoryChoices
+from models.user import Role, User
+from schemas.auth import UserLogin, UserLoginResponse
+from schemas.user import UserCreate, UserRead
+from services.role.role_service import RoleService
+
+logger = logging.getLogger(__name__)
+
+# перенести в Settings
+SECRET_KEY = "123qwerty"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_TIME_M = 15
+
+
+class AuthService:
+
+    def __init__(
+        self,
+        db: AsyncSession,
+        cacher: AbstractCache,
+    ):
+        self.db = db
+        self.cacher = cacher
+
+    async def signup_user(
+        self, user_create: UserCreate, role_service: RoleService
+    ) -> UserRead:
+
+        user_create_dict = user_create.model_dump()
+
+        # заменяем поле с паролем на поле с хэшем пароля
+        password = user_create_dict.pop("password")
+        user_create_dict["password_hash"] = generate_password_hash(password)
+
+        # здесь мы формируем список ID ролей из списка имён ролей
+        role_id_list = []
+        role_names = user_create_dict.pop("roles")
+        for role_name in role_names:
+            logger.info(f"role_name: {role_name}")
+            role = await role_service.get_by_name(role_name)
+            if role:
+                role_id_list.append(role.id)
+
+        user = User(**user_create_dict)
+
+        try:
+            self.db.add(user)
+            await self.db.commit()
+            await self.db.refresh(user)
+        except IntegrityError as e:
+            logger.error(str(e))
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"User {user.login} already exists",
+            )
+
+        # присваиваем юзеру указанные роли путём вставки связей в content.user_roles
+        for role_id in role_id_list:
+            try:
+                stmt = insert(
+                    Role.__table__.metadata.tables["content.user_roles"]
+                ).values(role_id=role_id, user_id=user.id)
+                await self.db.execute(stmt)
+                await self.db.commit()
+            except Exception as e:
+                logger.error(str(e))
+
+        return user
+
+    async def login_user(
+        self, user_login: UserLogin, user_agent: str
+    ) -> UserLoginResponse:
+        login = user_login.login
+        logger.info(f"login_user, login: {login}, user_agent: {user_agent}")
+
+        stmt = select(User).where(User.login == login)
+        user = await self.db.scalar(stmt)
+        if not user:
+            logger.error(f"User {login} not found")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"User {user_login.login} not found",
+            )
+
+        if not check_password_hash(user.password_hash, user_login.password):
+            logger.error(f"Password is incorrect")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Password is incorrect",
+            )
+
+        now = datetime.now()
+        expire_for_access_token = now + timedelta(
+            minutes=ACCESS_TOKEN_EXPIRE_TIME_M
+        )
+        expire_for_refresh_token = now + timedelta(
+            minutes=ACCESS_TOKEN_EXPIRE_TIME_M * 100
+        )
+
+        access_token_dict = {
+            "user_id": str(user.id),
+            "iat": now.timestamp(),
+        }
+        refresh_token_dict = access_token_dict.copy()
+
+        access_token_dict.update(
+            {"jti": str(uuid4()), "exp": expire_for_access_token}
+        )
+        refresh_token_dict.update(
+            {"jti": str(uuid4()), "exp": expire_for_refresh_token}
+        )
+
+        access_token_encoded_jwt = jwt.encode(
+            access_token_dict, SECRET_KEY, algorithm=ALGORITHM
+        )
+        refresh_token_encoded_jwt = jwt.encode(
+            access_token_dict, SECRET_KEY, algorithm=ALGORITHM
+        )
+
+        sessin_dict = {
+            "user_id": user.id,
+            "refresh_token_hash": generate_password_hash(
+                refresh_token_encoded_jwt
+            ),
+            "issued_at": now,
+            "expires_at": expire_for_refresh_token,
+            "device_info": user_agent,
+        }
+
+        # удаляем другие активные сессии с этого же девайса
+        stmt = delete(ActiveSession).where(
+            ActiveSession.user_id == user.id
+            and ActiveSession.device_info == user_agent
+        )
+        await self.db.execute(stmt)
+
+        # формируем и вставляем инф-ию о новой сессии
+        session = ActiveSession(**sessin_dict)
+        sessin_dict["name"] = SessionHistoryChoices.LOGIN_WITH_PASSWORD
+        session_hist = SessionHistory(**sessin_dict)
+        self.db.add(session)
+        self.db.add(session_hist)
+
+        await self.db.commit()
+
+        return UserLoginResponse(
+            access_token=access_token_encoded_jwt,
+            refresh_token=refresh_token_encoded_jwt,
+        )
+
+    async def logout_user(
+        self,
+        user_id: str,
+        user_agent: str,
+        access_token: str,
+        refresh_token: str,
+        cacher: AbstractCache,
+    ) -> None:
+
+        logger.info(
+            f"logout_user, user_id: {user_id}, user_agent: {user_agent}"
+        )
+
+        # удаляем активные сессии с этого девайса
+        stmt = delete(ActiveSession).where(
+            ActiveSession.user_id == user_id
+            and ActiveSession.device_info == user_agent
+        )
+        await self.db.execute(stmt)
+
+        access_token_dict = jwt.decode(
+            access_token, SECRET_KEY, algorithms=[ALGORITHM]
+        )
+        refresh_token_dict = jwt.decode(
+            refresh_token, SECRET_KEY, algorithms=[ALGORITHM]
+        )
+
+        sessin_dict = {
+            "user_id": user_id,
+            "refresh_token_hash": generate_password_hash(refresh_token),
+            "issued_at": datetime.fromtimestamp(refresh_token_dict["iat"]),
+            "expires_at": datetime.fromtimestamp(refresh_token_dict["exp"]),
+            "device_info": user_agent,
+        }
+
+        # формируем и вставляем инф-ию о выходе
+        sessin_dict["name"] = SessionHistoryChoices.USER_LOGOUT
+        session_hist = SessionHistory(**sessin_dict)
+        self.db.add(session_hist)
+
+        await self.db.commit()
+
+        # добавляем access_token в чёрный список в Redis
+        access_token_id = access_token_dict["jti"]
+        await cacher.set(
+            f"blacklist:{access_token_id}",
+            user_id,
+            ACCESS_TOKEN_EXPIRE_TIME_M * 60,
+        )
+
+        # проверка записи
+        # data = await cacher.get(f"blacklist:{access_token_id}")
+        # logger.info(f"cacher.get result: {data}")
+
+        return None
+
+
+def get_auth_service(
+    db: AsyncSession = Depends(get_db),
+    cacher: AbstractCache = Depends(get_cacher),
+) -> AuthService:
+    """
+    Функция для создания экземпляра класса AuthService
+    """
+    return AuthService(db=db, cacher=cacher)
+
+
+def get_token(request: Request):
+
+    token = request.cookies.get("access_token")
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token not found"
+        )
+
+    return token
+
+
+async def get_current_user(token: str = Depends(get_token)):
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Токен не валидный!",
+        )
+
+    logger.info(f"payload: {payload}")
+
+    # payload:
+    #  {
+    #   'jti': '73cf63ed-7d24-42e2-95bb-d18d0d90ab27',
+    #   'user_id': 'fc9f4e9c-d3b8-4d99-81c8-7a2b639846a1',
+    #   'iat': 1733644465.109611,
+    #   'exp': 1733645365
+    #  }
+
+    expire = payload.get("exp")
+    expire_time = datetime.fromtimestamp(int(expire))
+    if (not expire) or (expire_time < datetime.now()):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Токен истек"
+        )
+
+    user_id = payload.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Не найден ID пользователя",
+        )
+
+    return user_id
