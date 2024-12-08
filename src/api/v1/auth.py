@@ -18,13 +18,12 @@ from db.casher import AbstractCache, get_cacher
 from db.postrges_db.psql import get_db
 from schemas.auth import UserLogin, UserLoginResponse
 from schemas.user import UserCreate, UserRead
-from services.auth.auth_service import (
-    AuthService,
-    get_auth_service,
+from services.auth.auth_service import AuthService, get_auth_service
+from services.role.role_service import RoleService, get_role_service
+from services.utils import (
     get_user_id_from_access_token,
     get_user_id_from_refresh_token,
 )
-from services.role.role_service import RoleService, get_role_service
 
 logger = logging.getLogger(__name__)
 
@@ -95,14 +94,17 @@ async def login_user(
     """
     result = await auth_service.login_user(user_login, user_agent)
 
-    logger.info(f"login_user access_token = {result.access_token}")
-    logger.info(f"login_user refresh_token = {result.refresh_token}")
-
     response.set_cookie(
-        key="access_token", value=result.access_token, httponly=True
+        key="access_token",
+        value=result.access_token,
+        httponly=True,
+        samesite="lax",
     )
     response.set_cookie(
-        key="refresh_token", value=result.refresh_token, httponly=True
+        key="refresh_token",
+        value=result.refresh_token,
+        httponly=True,
+        samesite="lax",
     )
     return {
         "access_token": result.access_token,
@@ -139,7 +141,6 @@ async def refresh_token(
     Возвращает новую пару access_token/refresh_token токенов
     в обмен на корректный refresh_token
     """
-
     access_token = request.cookies.get("access_token")
     refresh_token = request.cookies.get("refresh_token")
 
@@ -148,10 +149,16 @@ async def refresh_token(
     )
 
     response.set_cookie(
-        key="access_token", value=result.access_token, httponly=True
+        key="access_token",
+        value=result.access_token,
+        httponly=True,
+        samesite="lax",
     )
     response.set_cookie(
-        key="refresh_token", value=result.refresh_token, httponly=True
+        key="refresh_token",
+        value=result.refresh_token,
+        httponly=True,
+        samesite="lax",
     )
 
     return {
@@ -194,6 +201,9 @@ async def logout_user(
     description="User password update endpoint",
 )
 async def password_update() -> BaseModel:
+    """
+    Обновление пароля пользователя.
+    """
     return {}
 
 

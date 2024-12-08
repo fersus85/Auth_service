@@ -12,6 +12,7 @@ from db.postrges_db import psql
 from db.postrges_db.psql import PostgresService, get_db
 from db.redis import RedisCache
 from services.role.role_repository import SQLAlchemyRoleRepository
+from services.auth.auth_repository import SQLAlchemyAuthRepository
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI):
 
     service.data_access_factory = get_db
     service.role.role_repository_class = SQLAlchemyRoleRepository
+    service.auth.auth_repository_class = SQLAlchemyAuthRepository
 
     logger.debug("Successfully connected")
     yield
