@@ -1,18 +1,23 @@
-from typing import List
+from contextlib import asynccontextmanager
+from typing import Any, List, Type
 from uuid import UUID
 
+from fastapi import Depends
 from sqlalchemy import delete, insert, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.user import Role
+from models import Role
 from schemas.role import RoleCreate, RoleFull, RoleUpdate
+from services import get_data_access
+from services.role import IRoleRepository, get_role_repository_class
 
 
-class RoleService:
-    """
-    Сервис для управления ролями пользователей в системе
-    """
+class RoleServiceExc(Exception):
+    pass
 
+
+class SQLAlchemyRoleRepository(IRoleRepository):
     def __init__(self, db_session: AsyncSession):
         """
         Инициализация сервиса ролей сессией SQLAlchemy,
@@ -28,30 +33,32 @@ class RoleService:
         """
 
         role = Role(**to_create.model_dump())
-        self.db_session.add(role)
-        await self.db_session.commit()
+        async with self._transaction_handler("Can't create new role"):
+            self.db_session.add(role)
 
-        return RoleFull.from_orm(role)
+        return RoleFull.model_validate(role)
 
-    async def get(self, role_id: UUID) -> RoleFull:
+    async def get(self, role_id: UUID) -> RoleFull | None:
         """
         Получает роль по её идентификатору
         """
         stmt = select(Role).where(Role.id == role_id)
         role = await self.db_session.scalar(stmt)
 
-        return RoleFull.from_orm(role)
+        return role and RoleFull.model_validate(role)
 
-    async def get_by_name(self, name: str) -> RoleFull:
+    async def get_by_name(self, name: str) -> RoleFull | None:
         """
         Получает роль по её названию
         """
         stmt = select(Role).where(Role.name == name)
         role = await self.db_session.scalar(stmt)
 
-        return RoleFull.from_orm(role)
+        return role and RoleFull.model_validate(role)
 
-    async def update(self, role_id: UUID, to_update: RoleUpdate) -> RoleFull:
+    async def update(
+        self, role_id: UUID, to_update: RoleUpdate
+    ) -> RoleFull | None:
         """
         Обновляет имя/описание роли
 
@@ -66,18 +73,18 @@ class RoleService:
             .where(Role.id == role_id)
             .values(**to_update.model_dump(exclude_unset=True))
         )
-        result = await self.db_session.scalar(stmt)
-        await self.db_session.commit()
+        async with self._transaction_handler("Can't update role"):
+            role = await self.db_session.scalar(stmt)
 
-        return RoleFull.from_orm(result)
+        return role and RoleFull.model_validate(role)
 
     async def delete(self, role_id: UUID) -> None:
         """
         Удаляет роль по её идентификатору
         """
         stmt = delete(Role).where(Role.id == role_id)
-        await self.db_session.execute(stmt)
-        await self.db_session.commit()
+        async with self._transaction_handler("Can't delete role"):
+            await self.db_session.execute(stmt)
 
     async def assign(self, role_id: UUID, user_id: UUID) -> None:
         """
@@ -86,8 +93,8 @@ class RoleService:
         stmt = insert(Role.__table__.metadata.tables["user_roles"]).values(
             role_id=role_id, user_id=user_id
         )
-        await self.db_session.execute(stmt)
-        await self.db_session.commit()
+        async with self._transaction_handler("Can't assign role"):
+            await self.db_session.execute(stmt)
 
     async def list_roles(
         self, name_filter: str | None = None
@@ -106,4 +113,22 @@ class RoleService:
 
         roles = await self.db_session.scalars(stmt)
 
-        return [RoleFull.from_orm(row) for row in roles.fetchmany()]
+        return [RoleFull.model_validate(row) for row in roles.fetchmany()]
+
+    @asynccontextmanager
+    async def _transaction_handler(self, error_message: str):
+        try:
+            yield
+            await self.db_session.commit()
+        except IntegrityError as e:
+            await self.db_session.rollback()
+            raise RoleServiceExc(error_message) from e
+
+
+async def get_repository(
+    data_access: Any = Depends(get_data_access),
+    role_repository_class: Type[IRoleRepository] = Depends(
+        get_role_repository_class
+    ),
+) -> IRoleRepository:
+    return role_repository_class(data_access)
