@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from core.config import settings
 from db.casher import AbstractCache, get_cacher
 from db.postrges_db.psql import get_db
 from models.session import ActiveSession, SessionHistory, SessionHistoryChoices
@@ -18,11 +19,6 @@ from schemas.user import UserCreate, UserRead
 from services.role.role_service import RoleService
 
 logger = logging.getLogger(__name__)
-
-# перенести в Settings
-SECRET_KEY = "123qwerty"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_TIME_M = 15
 
 
 class AuthService:
@@ -224,10 +220,10 @@ class AuthService:
 
         now = datetime.now()
         expire_for_access_token = now + timedelta(
-            minutes=ACCESS_TOKEN_EXPIRE_TIME_M
+            minutes=settings.JWT_TOKEN_EXPIRE_TIME_M
         )
         expire_for_refresh_token = now + timedelta(
-            minutes=ACCESS_TOKEN_EXPIRE_TIME_M * 100
+            minutes=settings.JWT_TOKEN_EXPIRE_TIME_M * 100
         )
 
         access_token_dict = {
@@ -244,17 +240,23 @@ class AuthService:
         )
 
         access_token_encoded_jwt = jwt.encode(
-            access_token_dict, SECRET_KEY, algorithm=ALGORITHM
+            access_token_dict,
+            settings.JWT_TOKEN_SECRET_KEY,
+            algorithm=settings.JWT_TOKEN_ALGORITHM,
         )
         refresh_token_encoded_jwt = jwt.encode(
-            refresh_token_dict, SECRET_KEY, algorithm=ALGORITHM
+            refresh_token_dict,
+            settings.JWT_TOKEN_SECRET_KEY,
+            algorithm=settings.JWT_TOKEN_ALGORITHM,
         )
 
         return (access_token_encoded_jwt, refresh_token_encoded_jwt)
 
     async def _decode_jwt_token(self, encoded_jwt_token: str):
         token_dict = jwt.decode(
-            encoded_jwt_token, SECRET_KEY, algorithms=[ALGORITHM]
+            encoded_jwt_token,
+            settings.JWT_TOKEN_SECRET_KEY,
+            algorithms=[settings.JWT_TOKEN_ALGORITHM],
         )
         return token_dict
 
@@ -288,7 +290,7 @@ class AuthService:
         await self.cacher.set(
             f"blacklist:{access_token_id}",
             access_token_dict["user_id"],
-            ACCESS_TOKEN_EXPIRE_TIME_M * 60,
+            settings.JWT_TOKEN_EXPIRE_TIME_M * 60,
         )
 
     async def _insert_event_to_session_hist(
@@ -386,7 +388,11 @@ async def get_user_id_from_access_token(
 ):
 
     try:
-        payload = jwt.decode(access_token, SECRET_KEY, algorithms=ALGORITHM)
+        payload = jwt.decode(
+            access_token,
+            settings.JWT_TOKEN_SECRET_KEY,
+            algorithms=settings.JWT_TOKEN_ALGORITHM,
+        )
     except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -428,7 +434,11 @@ async def get_user_id_from_refresh_token(
 ):
 
     try:
-        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=ALGORITHM)
+        payload = jwt.decode(
+            refresh_token,
+            settings.JWT_TOKEN_SECRET_KEY,
+            algorithms=settings.JWT_TOKEN_ALGORITHM,
+        )
     except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
