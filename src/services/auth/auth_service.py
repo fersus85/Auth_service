@@ -41,6 +41,7 @@ class AuthService:
 
         user_create_dict = user_create.model_dump()
 
+        # Женя, прости за комментарии!
         # заменяем поле с паролем на поле с хэшем пароля
         password = user_create_dict.pop("password")
         user_create_dict["password_hash"] = generate_password_hash(password)
@@ -85,7 +86,7 @@ class AuthService:
     ) -> UserLoginResponse:
 
         logger.info(
-            f"login_user, login: {user_login.login}, user_agent: {user_agent}"
+            f"login_user: {user_login.login}, user_agent: {user_agent}"
         )
 
         user = await self._get_user_by_login(user_login.login)
@@ -112,9 +113,12 @@ class AuthService:
         # удаляем другие активные сессии с этого же девайса
         await self._delete_active_session(user.id, user_agent)
 
-        # формируем и вставляем инф-ию о новой сессии
-        await self._insert_new_session(
+        # вставляем инф-ию о новой сессии
+        await self._insert_new_active_session(
             user.id, user_agent, refresh_token_encoded_jwt
+        )
+        await self._insert_event_to_session_hist(
+            user.id, user_agent, refresh_token_encoded_jwt, SessionHistoryChoices.LOGIN_WITH_PASSWORD
         )
 
         return UserLoginResponse(
@@ -141,8 +145,8 @@ class AuthService:
         await self._blacklist_access_token(access_token)
 
         # логгируем событие выхода
-        await self._insert_logout_to_session_hist(
-            user_id, user_agent, refresh_token
+        await self._insert_event_to_session_hist(
+            user_id, user_agent, refresh_token, SessionHistoryChoices.USER_LOGOUT
         )
 
         return None
@@ -153,14 +157,62 @@ class AuthService:
         user_agent: str,
         access_token: str,
         refresh_token: str,
-        cacher: AbstractCache,
     ) -> UserLoginResponse:
 
         logger.info(
             f"refresh_token, user_id: {user_id}, user_agent: {user_agent}"
         )
 
-        return None
+        # проверяем, что данный refresh_token действительно есть в БД
+        check = await self._check_refresh_token_in_active_session(user_id, user_agent, refresh_token)
+        if not check:
+            logger.error(f"Refresh token is invalid")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Refresh token is invalid",
+            )
+
+        # удаляем активные сессии с этого девайса (удаляем refresh_token)
+        await self._delete_active_session(user_id, user_agent)
+
+        # добавляем старый access_token в чёрный список в Redis (это надо?)
+        await self._blacklist_access_token(access_token)
+
+        # генерируем новую пару токенов
+        (access_token_encoded_jwt, refresh_token_encoded_jwt) = (
+            await self._generate_new_tokens(user_id)
+        )
+
+        # вставляем инф-ию о новой сессии
+        await self._insert_new_active_session(
+            user_id, user_agent, refresh_token_encoded_jwt
+        )
+
+        # логгируем событие рефреша
+        await self._insert_event_to_session_hist(
+            user_id, user_agent, refresh_token, SessionHistoryChoices.REFRESH_TOKEN_UPDATE
+        )
+
+        return UserLoginResponse(
+            access_token=access_token_encoded_jwt,
+            refresh_token=refresh_token_encoded_jwt,
+        )
+
+
+
+    async def _check_refresh_token_in_active_session(self, user_id: UUID, user_agent: str, refresh_token: str):
+        refresh_token_dict = await self._decode_jwt_token(
+            refresh_token
+        )
+        refresh_token_id = refresh_token_dict["jti"]
+
+        stmt = select(ActiveSession).where(ActiveSession.user_id == user_id and ActiveSession.refresh_token_id == refresh_token_id)
+        sess = await self.db.scalar(stmt)
+
+        if not sess:
+            return False
+
+        return True
 
     async def _get_user_by_login(self, login: str) -> User:
 
@@ -218,7 +270,7 @@ class AuthService:
         )
         return token_dict
 
-    async def _insert_new_session(
+    async def _insert_new_active_session(
         self, user_id: UUID, user_agent: str, refresh_token_encoded_jwt: str
     ):
 
@@ -228,19 +280,14 @@ class AuthService:
 
         session_dict = {
             "user_id": user_id,
-            "refresh_token_hash": generate_password_hash(
-                refresh_token_encoded_jwt
-            ),
+            "refresh_token_id": refresh_token_dict["jti"],
             "issued_at": datetime.fromtimestamp(refresh_token_dict["iat"]),
             "expires_at": datetime.fromtimestamp(refresh_token_dict["exp"]),
             "device_info": user_agent,
         }
 
         session = ActiveSession(**session_dict)
-        session_dict["name"] = SessionHistoryChoices.LOGIN_WITH_PASSWORD
-        session_hist = SessionHistory(**session_dict)
         self.db.add(session)
-        self.db.add(session_hist)
         await self.db.commit()
 
         return None
@@ -256,31 +303,31 @@ class AuthService:
             ACCESS_TOKEN_EXPIRE_TIME_M * 60,
         )
 
-        # проверка записи
-        data = await self.cacher.get(f"blacklist:{access_token_id}")
-        logger.info(f"cacher.get result: {data}")
-
-    async def _insert_logout_to_session_hist(
-        self, user_id: UUID, user_agent: str, refresh_token: str
+    async def _insert_event_to_session_hist(
+        self, user_id: UUID, 
+        user_agent: str, 
+        refresh_token_encoded_jwt: str,
+        event: SessionHistoryChoices
     ):
 
-        refresh_token_dict = await self._decode_jwt_token(refresh_token)
+        refresh_token_dict = await self._decode_jwt_token(
+            refresh_token_encoded_jwt
+        )
 
-        sessin_dict = {
-            "user_id": str(user_id),
-            "refresh_token_hash": generate_password_hash(refresh_token),
+        session_dict = {
+            "user_id": user_id,
+            "refresh_token_id": refresh_token_dict["jti"],
             "issued_at": datetime.fromtimestamp(refresh_token_dict["iat"]),
             "expires_at": datetime.fromtimestamp(refresh_token_dict["exp"]),
             "device_info": user_agent,
+            "name": event
         }
 
-        # формируем и вставляем инф-ию о выходе
-        sessin_dict["name"] = SessionHistoryChoices.USER_LOGOUT
-        session_hist = SessionHistory(**sessin_dict)
+        session_hist = SessionHistory(**session_dict)
         self.db.add(session_hist)
-
         await self.db.commit()
-
+        return None
+    
 
 def get_auth_service(
     db: AsyncSession = Depends(get_db),
@@ -292,37 +339,66 @@ def get_auth_service(
     return AuthService(db=db, cacher=cacher)
 
 
-def get_token(request: Request):
+def get_access_token_from_cookies(request: Request):
 
     token = request.cookies.get("access_token")
 
     if not token:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token not found"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token not found"
         )
 
     return token
 
 
-async def get_current_user(token: str = Depends(get_token)):
+
+async def get_user_id_from_access_token(access_token: str = Depends(get_access_token_from_cookies)):
 
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
+        payload = jwt.decode(access_token, SECRET_KEY, algorithms=ALGORITHM)
     except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Токен не валидный!",
         )
 
-    logger.info(f"payload: {payload}")
+    expire = payload.get("exp")
+    expire_time = datetime.fromtimestamp(int(expire))
+    if (not expire) or (expire_time < datetime.now()):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Токен истек"
+        )
 
-    # payload:
-    #  {
-    #   'jti': '73cf63ed-7d24-42e2-95bb-d18d0d90ab27',
-    #   'user_id': 'fc9f4e9c-d3b8-4d99-81c8-7a2b639846a1',
-    #   'iat': 1733644465.109611,
-    #   'exp': 1733645365
-    #  }
+    user_id = payload.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Не найден ID пользователя",
+        )
+
+    return user_id
+
+
+def get_refresh_token_from_cookies(request: Request):
+
+    token = request.cookies.get("refresh_token")
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token not found"
+        )
+
+    return token
+
+async def get_user_id_from_refresh_token(refresh_token: str = Depends(get_refresh_token_from_cookies)):
+
+    try:
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=ALGORITHM)
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Токен не валидный!",
+        )
 
     expire = payload.get("exp")
     expire_time = datetime.fromtimestamp(int(expire))

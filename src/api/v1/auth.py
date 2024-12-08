@@ -21,7 +21,8 @@ from schemas.user import UserCreate, UserRead
 from services.auth.auth_service import (
     AuthService,
     get_auth_service,
-    get_current_user,
+    get_user_id_from_access_token,
+    get_user_id_from_refresh_token,
 )
 from services.role.role_service import RoleService, get_role_service
 
@@ -93,7 +94,10 @@ async def login_user(
     Выдача токенов.
     """
     result = await auth_service.login_user(user_login, user_agent)
-    logger.info(f"login_user result = {result}")
+
+    logger.info(f"login_user access_token = {result.access_token}")
+    logger.info(f"login_user refresh_token = {result.refresh_token}")
+
     response.set_cookie(
         key="access_token", value=result.access_token, httponly=True
     )
@@ -127,25 +131,28 @@ async def social_login() -> BaseModel:
 async def refresh_token(
     request: Request,
     response: Response,
-    user_id: str = Depends(get_current_user),
+    user_id: str = Depends(get_user_id_from_refresh_token),
     user_agent: Annotated[str | None, Header()] = None,
     auth_service: AuthService = Depends(get_auth_service),
 ) -> UserLoginResponse:
     """
     Возвращает новую пару access_token/refresh_token токенов в обмен на корректный refresh_token
     """
+
     access_token = request.cookies.get("access_token")
     refresh_token = request.cookies.get("refresh_token")
+    
     result = await auth_service.refresh_token(
         user_id, user_agent, access_token, refresh_token
     )
-    logger.info(f"refresh_token result = {result}")
+
     response.set_cookie(
         key="access_token", value=result.access_token, httponly=True
     )
     response.set_cookie(
         key="refresh_token", value=result.refresh_token, httponly=True
     )
+    
     return {
         "access_token": result.access_token,
         "refresh_token": result.refresh_token,
@@ -161,7 +168,7 @@ async def refresh_token(
 async def logout_user(
     request: Request,
     response: Response,
-    user_id: str = Depends(get_current_user),
+    user_id: str = Depends(get_user_id_from_access_token),
     user_agent: Annotated[str | None, Header()] = None,
     auth_service: AuthService = Depends(get_auth_service),
 ) -> None:
