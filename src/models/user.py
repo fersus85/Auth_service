@@ -45,7 +45,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )
-    login: Mapped[str] = mapped_column(String(255), unique=True)
+    login: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     first_name: Mapped[str] = mapped_column(String(255), default="")
     last_name: Mapped[str] = mapped_column(String(255), default="")
@@ -78,7 +78,7 @@ class Role(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    name: Mapped[str] = mapped_column(String(255), unique=True)
+    name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     description: Mapped[str] = mapped_column(String, default="")
 
     users: Mapped[List[User]] = relationship(secondary=user_roles)

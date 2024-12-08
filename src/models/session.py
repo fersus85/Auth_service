@@ -4,7 +4,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import UUID, DateTime, ForeignKey, String, func
+from sqlalchemy import UUID, DateTime, ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
@@ -33,7 +33,7 @@ class ActiveSession(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("user.id", ondelete="CASCADE")
+        ForeignKey("user.id", ondelete="CASCADE"), index=True
     )
     refresh_token_hash: Mapped[str]
     issued_at: Mapped[datetime]
@@ -41,6 +41,10 @@ class ActiveSession(Base):
     device_info: Mapped[str]
 
     user: Mapped[user.User] = relationship(back_populates="active_session")
+
+    __table_args__ = (
+        Index("btree_user_id_device_info", "user_id", "device_info"),
+    )
 
 
 class SessionHistoryChoices(enum.Enum):
@@ -83,7 +87,7 @@ class SessionHistory(Base):
     )
     name: Mapped[SessionHistoryChoices]
     user_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("user.id", ondelete="SET NULL")
+        ForeignKey("user.id", ondelete="SET NULL"), index=True
     )
     refresh_token_hash: Mapped[str] = mapped_column(String, default="")
     issued_at: Mapped[datetime]
