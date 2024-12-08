@@ -1,0 +1,109 @@
+from typing import List
+from uuid import UUID
+
+from sqlalchemy import delete, insert, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.user import Role
+from schemas.role import RoleCreate, RoleFull, RoleUpdate
+
+
+class RoleService:
+    """
+    Сервис для управления ролями пользователей в системе
+    """
+
+    def __init__(self, db_session: AsyncSession):
+        """
+        Инициализация сервиса ролей сессией SQLAlchemy,
+        связанной с таблицей roles
+        """
+        self.db_session = db_session
+
+    async def create(self, to_create: RoleCreate) -> RoleFull:
+        """
+        Создаёт новую роль
+
+        :param to_create: Схема на основе которой нужно создать новую роль
+        """
+
+        role = Role(**to_create.model_dump())
+        self.db_session.add(role)
+        await self.db_session.commit()
+
+        return RoleFull.from_orm(role)
+
+    async def get(self, role_id: UUID) -> RoleFull:
+        """
+        Получает роль по её идентификатору
+        """
+        stmt = select(Role).where(Role.id == role_id)
+        role = await self.db_session.scalar(stmt)
+
+        return RoleFull.from_orm(role)
+
+    async def get_by_name(self, name: str) -> RoleFull:
+        """
+        Получает роль по её названию
+        """
+        stmt = select(Role).where(Role.name == name)
+        role = await self.db_session.scalar(stmt)
+
+        return RoleFull.from_orm(role)
+
+    async def update(self, role_id: UUID, to_update: RoleUpdate) -> RoleFull:
+        """
+        Обновляет имя/описание роли
+
+        :param role_id: Уникальный идентификатор роли
+        :param to_update: Схема на основе которой нужно обновить поля.
+            Если поля имеют значение None, то их обновлять не нужно
+        """
+
+        stmt = (
+            update(Role)
+            .returning(Role)
+            .where(Role.id == role_id)
+            .values(**to_update.model_dump(exclude_unset=True))
+        )
+        result = await self.db_session.scalar(stmt)
+        await self.db_session.commit()
+
+        return RoleFull.from_orm(result)
+
+    async def delete(self, role_id: UUID) -> None:
+        """
+        Удаляет роль по её идентификатору
+        """
+        stmt = delete(Role).where(Role.id == role_id)
+        await self.db_session.execute(stmt)
+        await self.db_session.commit()
+
+    async def assign(self, role_id: UUID, user_id: UUID) -> None:
+        """
+        Назначает роль пользователю
+        """
+        stmt = insert(Role.__table__.metadata.tables["user_roles"]).values(
+            role_id=role_id, user_id=user_id
+        )
+        await self.db_session.execute(stmt)
+        await self.db_session.commit()
+
+    async def list_roles(
+        self, name_filter: str | None = None
+    ) -> List[RoleFull]:
+        """
+        Возвращает список ролей, с возможностью фильтрации по названию.
+
+        :param name_filter: Строка для фильтрации ролей по названию,
+            с символом подстановки '%' по необходимости.
+            Если None, то вывести все существующие роли
+        """
+        if name_filter is None:
+            stmt = select(Role)
+        else:
+            stmt = select(Role).where(Role.name.like(name_filter))
+
+        roles = await self.db_session.scalars(stmt)
+
+        return [RoleFull.from_orm(row) for row in roles.fetchmany()]
