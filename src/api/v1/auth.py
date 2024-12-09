@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.casher import AbstractCache, get_cacher
 from db.postrges_db.psql import get_db
 from schemas.auth import UserLogin, UserLoginResponse
-from schemas.user import UserCreate, UserRead
+from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth.auth_service import AuthService, get_auth_service
 from services.role.role_service import RoleService, get_role_service
 from services.utils import (
@@ -195,16 +195,21 @@ async def logout_user(
 
 @router.post(
     "/password_update",
-    response_model=BaseModel,
     status_code=status.HTTP_200_OK,
     summary="User password update",
     description="User password update endpoint",
 )
-async def password_update() -> BaseModel:
+async def password_update(
+    user_update: UserUpdate,
+    user_id: str = Depends(get_user_id_from_access_token),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> None:
     """
     Обновление пароля пользователя.
     """
-    return {}
+    result = await auth_service.password_update(user_id, user_update)
+    logger.info(f"password_update result = {result}")
+    return result
 
 
 @router.post(

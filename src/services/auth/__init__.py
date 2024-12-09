@@ -50,7 +50,6 @@ class IAuthRepository(ABC):
         :param user_agent: девайс пользователя
         :param refresh_token: закодированный токен
         """
-
         pass
 
     @abstractmethod
@@ -64,7 +63,6 @@ class IAuthRepository(ABC):
         :param user_agent: девайс пользователя
         :param refresh_token: закодированный токен
         """
-
         pass
 
     @abstractmethod
@@ -94,7 +92,20 @@ class IAuthRepository(ABC):
         :param user_agent: девайс пользователя
         :param refresh_token: закодированный токен
         """
+        pass
 
+    @abstractmethod
+    async def update_passord_hash(
+        self,
+        user_id: UUID,
+        new_password_hash: str,
+    ) -> None:
+        """
+        Обновляет хэш пароля пользователя
+
+        :param user_id: ID пользователя
+        :param new_password_hash: новый хэш пароля
+        """
         pass
 
 

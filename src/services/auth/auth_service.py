@@ -8,7 +8,7 @@ from db.casher import AbstractCache, get_cacher
 from models.session import SessionHistoryChoices
 from models.user import User
 from schemas.auth import UserLogin, UserLoginResponse
-from schemas.user import UserCreate, UserRead
+from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth import IAuthRepository
 from services.auth.auth_repository import get_repository
 from services.role.role_service import RoleService
@@ -160,6 +160,35 @@ class AuthService:
             access_token=access_token_encoded_jwt,
             refresh_token=refresh_token_encoded_jwt,
         )
+
+    async def password_update(
+        self,
+        user_id: str,
+        user_update: UserUpdate,
+    ) -> None:
+        """
+        Смена пароля пользователю.
+        """
+        if not user_update.password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password is empty!",
+            )
+
+        if len(user_update.password) < 8:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password length must be 8 or more characters",
+            )
+
+        new_password_hash = generate_password_hash(user_update.password)
+
+        await self.repository.update_passord_hash(
+            user_id,
+            new_password_hash,
+        )
+
+        return None
 
     async def _blacklist_access_token(self, encoded_jwt_token: str):
         """

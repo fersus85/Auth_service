@@ -5,7 +5,7 @@ from typing import Any, List, Type
 from uuid import UUID
 
 from fastapi import Depends
-from sqlalchemy import and_, delete, select
+from sqlalchemy import and_, delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -190,6 +190,26 @@ class SQLAlchemyAuthRepository(IAuthRepository):
 
         async with self._transaction_handler("Can't add session event"):
             self.db_session.add(session_hist)
+
+    async def update_passord_hash(
+        self,
+        user_id: UUID,
+        new_password_hash: str,
+    ) -> None:
+        """
+        Обновляет хэш пароля пользователя
+
+        :param user_id: ID пользователя
+        :param new_password_hash: новый хэш пароля
+        """
+        stmt = (
+            update(User)
+            .returning(User)
+            .where(User.id == user_id)
+            .values(password_hash=new_password_hash)
+        )
+        async with self._transaction_handler("Can't update user"):
+            await self.db_session.execute(stmt)
 
 
 async def get_repository(
