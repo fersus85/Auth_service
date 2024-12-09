@@ -53,7 +53,10 @@ class User(Base):
     last_name: Mapped[str] = mapped_column(String(255), default="")
 
     roles: Mapped[List["Role"]] = relationship(
-        "Role", secondary=user_roles, back_populates="users"
+        "Role",
+        secondary=user_roles,
+        back_populates="users",
+        cascade="all, delete",
     )
     active_session: Mapped[List["ActiveSession"]] = relationship(
         "ActiveSession", back_populates="user"
@@ -86,5 +89,8 @@ class Role(Base):
     description: Mapped[str] = mapped_column(String, default="")
 
     users: Mapped[List["User"]] = relationship(
-        "User", secondary=user_roles, back_populates="roles"
+        "User",
+        secondary=user_roles,
+        back_populates="roles",
+        cascade="all, delete",
     )

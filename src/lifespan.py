@@ -5,11 +5,13 @@ from fastapi import FastAPI
 from redis.asyncio import Redis
 
 import db.casher as cacher
+import services as service
 from core.config import settings
 from db import redis
 from db.postrges_db import psql
-from db.postrges_db.psql import PostgresService
+from db.postrges_db.psql import PostgresService, get_db
 from db.redis import RedisCache
+from services.role.role_repository import SQLAlchemyRoleRepository
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,10 @@ async def lifespan(app: FastAPI):
     )
     redis.redis = Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
     cacher.cacher = RedisCache(redis.redis)
+
+    service.data_access_factory = get_db
+    service.role.role_repository_class = SQLAlchemyRoleRepository
+
     logger.debug("Successfully connected")
     yield
     await psql.psql.dispose()
