@@ -2,15 +2,12 @@ import logging
 from typing import List
 
 from fastapi import Depends
-from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.casher import AbstractCache, get_cacher
-from db.postrges_db.psql import get_db
-from models.session import SessionHistory, SessionHistoryChoices
-from models.user import User
 from schemas.session import HistoryRead
 from schemas.user import UserRead
+from services.user import IUserRepository
+from services.user.user_repository import get_repository
 
 logger = logging.getLogger(__name__)
 
@@ -19,43 +16,36 @@ class UserService:
 
     def __init__(
         self,
-        db: AsyncSession,
+        repository: IUserRepository,
         cacher: AbstractCache,
     ):
-        self.db = db
+        self.repository = repository
         self.cacher = cacher
 
     async def get_profile(self, user_id: str) -> UserRead:
-        stmt = select(User).where(User.id == user_id)
-        user = await self.db.scalar(stmt)
+        """
+        Получение данных о пользователе
+
+        :param user_id: ID пользователя
+        """
+        user = await self.repository.get_profile(user_id)
         return user
 
     async def get_history(self, user_id: str) -> List[HistoryRead]:
-        stmt = (
-            select(SessionHistory)
-            .where(
-                and_(
-                    SessionHistory.user_id == user_id,
-                    SessionHistory.name.in_(
-                        [
-                            SessionHistoryChoices.LOGIN_WITH_PASSWORD,
-                            SessionHistoryChoices.REFRESH_TOKEN_UPDATE,
-                        ]
-                    ),
-                )
-            )
-            .order_by(SessionHistory.created_at)
-        )
-        result = await self.db.scalars(stmt)
-        sess_hist = [HistoryRead.model_validate(row) for row in result]
+        """
+        Получение истории логинов пользователя
+
+        :param user_id: ID пользователя
+        """
+        sess_hist = await self.repository.get_history(user_id)
         return sess_hist
 
 
 def get_user_service(
-    db: AsyncSession = Depends(get_db),
+    repository: IUserRepository = Depends(get_repository),
     cacher: AbstractCache = Depends(get_cacher),
 ) -> UserService:
     """
     Функция для создания экземпляра класса UserService
     """
-    return UserService(db=db, cacher=cacher)
+    return UserService(repository=repository, cacher=cacher)
