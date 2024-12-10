@@ -1,9 +1,11 @@
 from typing import List
 from uuid import UUID
 
+from fastapi import Request
 from fastapi.params import Depends
 
 from schemas.role import RoleCreate, RoleFull, RoleUpdate
+from schemas.user import UserBase
 from services.role import IRoleRepository
 from services.role.role_repository import get_repository
 
@@ -74,6 +76,15 @@ class RoleService:
 
         await self.repository.assign(role_id, user_id)
 
+    async def revoke(self, role_id: UUID, user_id: UUID) -> None:
+        """
+        Отзывает роль у пользователя
+
+        :raise RoleServiceExc: Если не удалось отозвать роль у пользователя
+        """
+
+        await self.repository.revoke(role_id, user_id)
+
     async def list_roles(
         self, name_filter: str | None = None
     ) -> List[RoleFull]:
@@ -95,3 +106,25 @@ def get_role_service(
     Функция для создания экземпляра класса RoleService
     """
     return RoleService(repository=repository)
+
+
+# Ниже заглушки. Без get_current_user не реализовать
+def get_current_user(request: Request) -> UserBase:
+    return None
+
+
+class PermissionChecker:
+    def __init__(self, required: List[str]) -> None:
+        self.required = required
+
+    def __call__(
+        self,
+        user: UserBase = Depends(get_current_user),
+        role_service: RoleService = Depends(get_role_service),
+    ) -> bool:
+        # raise HTTPException(
+        #     status_code=status.HTTP_403_FORBIDDEN,
+        #     detail="Not enough permissions"
+        # )
+
+        return True

@@ -55,6 +55,15 @@ class IRoleRepository(ABC):
         pass
 
     @abstractmethod
+    async def revoke(self, role_id: UUID, user_id: UUID) -> None:
+        """
+        Отзывает роль у пользователя
+
+        :raise RoleServiceExc: Если не удалось отозвать роль у пользователя
+        """
+        pass
+
+    @abstractmethod
     async def list_roles(
         self, name_filter: str | None = None
     ) -> List[RoleFull]:

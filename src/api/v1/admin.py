@@ -1,83 +1,130 @@
-from typing import Any
+from typing import List
+from uuid import UUID
 
-from fastapi import APIRouter, status
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, status
+from fastapi.params import Depends
 
-router = APIRouter(prefix="/role", tags=["Admin"])
+from schemas.role import RoleCreate, RoleRead, RoleUpdate
+from services.role.role_repository import RoleServiceExc
+from services.role.role_service import (
+    PermissionChecker,
+    RoleService,
+    get_role_service,
+)
+
+router = APIRouter(
+    prefix="/role",
+    tags=["Admin"],
+    dependencies=[Depends(PermissionChecker(required=["admin"]))],
+)
 
 
 @router.get(
     "/{role_id}",
-    response_model=BaseModel,
+    response_model=RoleRead,
     status_code=status.HTTP_200_OK,
     summary="Role info",
     description="Role info endpoint",
 )
-async def role_info(role_id: str) -> Any:
-    return {}
+async def role_info(
+    role_id: UUID, role_service: RoleService = Depends(get_role_service)
+) -> RoleRead:
+    if (role := await role_service.get(role_id)) is None:
+        raise HTTPException(status_code=404, detail="Role not found")
+    return role
 
 
 @router.post(
     "/",
-    response_model=BaseModel,
+    response_model=RoleRead,
     status_code=status.HTTP_201_CREATED,
     summary="Role creation",
     description="Role creation endpoint",
 )
-async def create_role() -> BaseModel:
-    return {}
+async def create_role(
+    role: RoleCreate, role_service: RoleService = Depends(get_role_service)
+) -> RoleRead:
+    try:
+        return await role_service.create(role)
+    except RoleServiceExc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Role with this name already exists",
+        )
 
 
 @router.put(
     "/{role_id}",
-    response_model=BaseModel,
+    response_model=RoleRead,
     status_code=status.HTTP_200_OK,
     summary="Role update",
     description="Role update endpoint",
 )
-async def update_role(role_id: str) -> BaseModel:
-    return {}
+async def update_role(
+    role_id: UUID,
+    role_update: RoleUpdate,
+    role_service: RoleService = Depends(get_role_service),
+) -> RoleRead:
+    if (role := await role_service.update(role_id, role_update)) is None:
+        raise HTTPException(status_code=404, detail="Role not found")
+    return role
 
 
 @router.delete(
     "/{role_id}",
-    response_model=BaseModel,
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Role deletion",
     description="Role deletion endpoint",
 )
-async def delete_role(role_id: str) -> BaseModel:
-    return {}
+async def delete_role(
+    role_id: UUID, role_service: RoleService = Depends(get_role_service)
+) -> None:
+    await role_service.delete(role_id)
 
 
 @router.get(
     "s",
-    response_model=BaseModel,
+    response_model=List[RoleRead],
     status_code=status.HTTP_200_OK,
     summary="Roles list",
     description="Roles list endpoint",
 )
-async def list_roles() -> Any:
-    return {}
+async def list_roles(
+    query: str | None = None,
+    role_service: RoleService = Depends(get_role_service),
+) -> List[RoleRead]:
+    return await role_service.list_roles(query)
 
 
 @router.post(
     "/assign",
-    response_model=BaseModel,
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Assign roles to user",
     description="Assign roles to user",
 )
-async def assign_role() -> BaseModel:
-    return {}
+async def assign_role(
+    role_id: UUID,
+    user_id: UUID,
+    role_service: RoleService = Depends(get_role_service),
+) -> None:
+    try:
+        return await role_service.assign(role_id, user_id)
+    except RoleServiceExc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to assign role to the user",
+        )
 
 
 @router.post(
     "/revoke",
-    response_model=BaseModel,
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Revoke roles from user",
     description="Revoke roles from user",
 )
-async def revoke_role() -> BaseModel:
-    return {}
+async def revoke_role(
+    role_id: UUID,
+    user_id: UUID,
+    role_service: RoleService = Depends(get_role_service),
+) -> None:
+    await role_service.revoke(role_id, user_id)

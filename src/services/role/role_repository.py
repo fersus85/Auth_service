@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Role
+from models.user import user_roles
 from schemas.role import RoleCreate, RoleFull, RoleUpdate
 from services import get_data_access
 from services.role import IRoleRepository, get_role_repository_class
@@ -90,10 +91,20 @@ class SQLAlchemyRoleRepository(IRoleRepository):
         """
         Назначает роль пользователю
         """
-        stmt = insert(Role.__table__.metadata.tables["user_roles"]).values(
-            role_id=role_id, user_id=user_id
-        )
+        stmt = insert(user_roles).values(role_id=role_id, user_id=user_id)
         async with self._transaction_handler("Can't assign role"):
+            await self.db_session.execute(stmt)
+
+    async def revoke(self, role_id: UUID, user_id: UUID) -> None:
+        """
+        Отзывает роль у пользователя
+
+        :raise RoleServiceExc: Если не удалось отозвать роль у пользователя
+        """
+        stmt = delete(user_roles).where(
+            user_roles.c.role_id == role_id and user_roles.c.user_id == user_id
+        )
+        async with self._transaction_handler("Can't revoke role"):
             await self.db_session.execute(stmt)
 
     async def list_roles(
