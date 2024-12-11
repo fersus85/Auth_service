@@ -15,8 +15,12 @@ if TYPE_CHECKING:
 user_roles = Table(
     "user_roles",
     Base.metadata,
-    Column("user_id", ForeignKey("user.id"), primary_key=True),
-    Column("role_id", ForeignKey("role.id"), primary_key=True),
+    Column(
+        "user_id", ForeignKey("user.id", ondelete="CASCADE"), primary_key=True
+    ),
+    Column(
+        "role_id", ForeignKey("role.id", ondelete="CASCADE"), primary_key=True
+    ),
 )
 
 
@@ -40,6 +44,7 @@ class User(Base):
     """
 
     __tablename__ = "user"
+    __table_args__ = {"schema": "content"}
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -53,10 +58,7 @@ class User(Base):
     last_name: Mapped[str] = mapped_column(String(255), default="")
 
     roles: Mapped[List["Role"]] = relationship(
-        "Role",
-        secondary=user_roles,
-        back_populates="users",
-        cascade="all, delete",
+        "Role", secondary=user_roles, back_populates="users"
     )
     active_session: Mapped[List["ActiveSession"]] = relationship(
         "ActiveSession", back_populates="user"
@@ -81,6 +83,7 @@ class Role(Base):
     """
 
     __tablename__ = "role"
+    __table_args__ = {"schema": "content"}
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -89,8 +92,5 @@ class Role(Base):
     description: Mapped[str] = mapped_column(String, default="")
 
     users: Mapped[List["User"]] = relationship(
-        "User",
-        secondary=user_roles,
-        back_populates="roles",
-        cascade="all, delete",
+        "User", secondary=user_roles, back_populates="roles"
     )
