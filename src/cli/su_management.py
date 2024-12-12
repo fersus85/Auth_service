@@ -6,6 +6,18 @@ from werkzeug.security import generate_password_hash
 from models.user import Role, User
 
 
+class UserAlreadyExistsError(Exception):
+    def __init__(self, login):
+        super().__init__(f"User '{login}' already exists.")
+        self.login = login
+
+
+class RolesNotAssignedError(Exception):
+    def __init__(self, role):
+        super().__init__(f"Role '{role}' did not assighed.")
+        self.role = role
+
+
 async def create_user(
     session: AsyncSession, login: str, password: str
 ) -> User:
@@ -13,7 +25,8 @@ async def create_user(
     Создает нового пользователя с указанным логином и паролем.
 
     Проверяет, существует ли пользователь с данным логином.
-    Если пользователь уже существует, выбрасывает исключение ValueError.
+    Если пользователь уже существует, выбрасывает
+    исключение UserAlreadyExistsError.
 
     Args:
         session (AsyncSession): Асинхронная сессия базы данных.
@@ -24,7 +37,8 @@ async def create_user(
         User: Созданный объект пользователя.
 
     Raises:
-        ValueError: Если пользователь с данным логином уже существует.
+        UserAlreadyExistsError: Если пользователь с
+        данным логином уже существует.
     """
     new_user = User(
         login=login, password_hash=generate_password_hash(password)
@@ -35,31 +49,33 @@ async def create_user(
         return new_user
     except IntegrityError as e:
         await session.rollback()
-        raise ValueError("User %s already exists.", login) from e
+        raise UserAlreadyExistsError(login) from e
 
 
 async def assign_role(
     session: AsyncSession, user: User, role_name: str
 ) -> None:
     """
-    Назначает указанную роль пользователю.
+        Назначает указанную роль пользователю.
 
-    Проверяет, существует ли роль с данным именем.
-    Если роль не найдена, выбрасывает исключение ValueError.
+        Проверяет, существует ли роль с данным именем.
+        Если роль не найдена, выбрасывает исключение
+        RolesNotAssignedError(Exception):
+    .
 
-    Args:
-        session (AsyncSession): Асинхронная сессия базы данных.
-        user (User): Объект пользователя, которому будет назначена роль.
-        role_name (str): Имя роли, которую нужно назначить.
+        Args:
+            session (AsyncSession): Асинхронная сессия базы данных.
+            user (User): Объект пользователя, которому будет назначена роль.
+            role_name (str): Имя роли, которую нужно назначить.
 
-    Raises:
-        ValueError: Если роль с данным именем не найдена.
+        Raises:
+            RolesNotAssignedError: Если роль с данным именем не найдена.
     """
     stmt = select(Role).where(Role.name == role_name)
     role_instance = await session.scalar(stmt)
 
     if not role_instance:
-        raise ValueError("Роль '%s' не найдена.", role_name)
+        raise RolesNotAssignedError(role_name)
     try:
         stmt = insert(User.roles).values(
             role_id=role_instance.id, user_id=user.id
@@ -68,4 +84,4 @@ async def assign_role(
         await session.commit()
     except IntegrityError as e:
         await session.rollback()
-        raise ValueError("IntegrityError") from e
+        raise RolesNotAssignedError(role_name) from e
