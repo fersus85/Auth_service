@@ -11,9 +11,18 @@ from db import redis
 from db.postrges_db import psql
 from db.postrges_db.psql import PostgresService, get_db
 from db.redis import RedisCache
+from models.user import Role
+from scripts.create_default_roles import insert_roles
 from services.role.role_repository import SQLAlchemyRoleRepository
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_ROLES = [
+    Role(name="superuser", description="Может всё"),
+    Role(name="admin", description="Администратор"),
+    Role(name="subscriber", description="Пользователь с допами"),
+    Role(name="user", description="Зарегестрированный пользователь"),
+]
 
 
 @asynccontextmanager
@@ -30,6 +39,9 @@ async def lifespan(app: FastAPI):
 
     service.data_access_factory = get_db
     service.role.role_repository_class = SQLAlchemyRoleRepository
+
+    async for session in get_db():
+        await insert_roles(session, DEFAULT_ROLES)
 
     logger.debug("Successfully connected")
     yield
