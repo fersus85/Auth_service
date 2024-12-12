@@ -50,7 +50,14 @@ async def test_signup(
     exp_status: HTTPStatus,
     exp_result: str | None,
 ) -> None:
+    """
+    Тест регистрации пользователя.
+    Проверяем регистрацию с достаточно длинным паролем,
+    со слишком коротким паролем
+    и попытку регистрации существующего пользователя.
+    """
     response = await make_post_request("/auth/signup", "", post_body)
+
     body = await response.json()
 
     assert response.status == exp_status
@@ -94,9 +101,15 @@ async def test_login(
     exp_status: HTTPStatus,
     exp_result: str | None,
 ) -> None:
+    """
+    Тестирование входа пользователя.
+    Выполняем попытку входа несуществующего пользователя,
+    с неверным паролем, с корректными данными.
+    """
     response: ClientResponse = await make_post_request(
         "/auth/login", "", post_body
     )
+
     body = await response.json()
 
     assert response.status == exp_status
@@ -114,11 +127,15 @@ async def test_login(
 async def test_profile(
     make_get_request: Callable[[str, str, str], ClientResponse],
 ) -> None:
+    """
+    Проверка чтения своего профиля.
+    """
     response: ClientResponse = await make_get_request("/profile", "", "")
 
     body = await response.json()
 
     assert response.status == HTTPStatus.OK
+
     assert "id" in body
     assert "login" in body
     assert "first_name" in body
@@ -129,6 +146,10 @@ async def test_profile(
 async def test_profile_history(
     make_get_request: Callable[[str, str, str], ClientResponse],
 ) -> None:
+    """
+    Проверка чтения своей истории входов,
+    в которой сейчас должен быть только один вход.
+    """
     response: ClientResponse = await make_get_request(
         "/profile/history", "", ""
     )
@@ -136,6 +157,7 @@ async def test_profile_history(
     body = await response.json()
 
     assert response.status == HTTPStatus.OK
+
     assert len(body) == 1
 
 
@@ -143,9 +165,13 @@ async def test_profile_history(
 async def test_refresh(
     make_post_request: Callable[[str, str, Dict[str, Any]], ClientResponse],
 ) -> None:
+    """
+    Проверка обновления токенов доступа.
+    """
     response: ClientResponse = await make_post_request(
         "/auth/token/refresh", "", ""
     )
+
     body = await response.json()
 
     assert response.status == HTTPStatus.OK
@@ -177,12 +203,17 @@ async def test_password_update(
     exp_status: HTTPStatus,
     exp_result: str | None,
 ) -> None:
+    """
+    Проверка смены пароля.
+    """
     response: ClientResponse = await make_post_request(
         "/auth/password_update", "", post_body
     )
+
     body = await response.json()
 
     assert response.status == exp_status
+
     if exp_status == HTTPStatus.BAD_REQUEST:
         assert body.get("detail") == exp_result
 
@@ -211,12 +242,18 @@ async def test_logout(
     exp_status: HTTPStatus,
     exp_result: str | None,
 ) -> None:
+    """
+    Проверка выхода пользователя.
+    При повтороной попытке возвращает ошибку.
+    """
     response: ClientResponse = await make_post_request(
         "/auth/logout", "", post_body
     )
+
     body = await response.json()
 
     assert response.status == exp_status
+
     if response.status == HTTPStatus.UNAUTHORIZED:
         assert body.get("detail") == exp_result
 
@@ -245,6 +282,9 @@ async def test_login_new_password(
     exp_status: HTTPStatus,
     exp_result: str | None,
 ) -> None:
+    """
+    Проверка входа пользователя со старым и новым паролем.
+    """
     response: ClientResponse = await make_post_request(
         "/auth/login", "", post_body
     )
@@ -265,6 +305,9 @@ async def test_login_new_password(
 async def test_profile_history_again(
     make_get_request: Callable[[str, str, str], ClientResponse],
 ) -> None:
+    """
+    Проверка истории входов, в которой теперь должно быть два события.
+    """
     response: ClientResponse = await make_get_request(
         "/profile/history", "", ""
     )
