@@ -9,20 +9,18 @@ class IUserRepository(ABC):
     @abstractmethod
     async def get_profile(self, user_id: str) -> UserRead:
         """
-        Создаёт нового пользователя
+        Получение данных о пользователе
 
-        :param to_create: Схема на основе которой
-            нужно создать нового пользователя
+        :param user_id: ID пользователя
         """
         pass
 
     @abstractmethod
     async def get_history(self, user_id: str) -> List[HistoryRead]:
         """
-        Создаёт нового пользователя
+        Получение истории логинов пользователя
 
-        :param to_create: Схема на основе которой
-            нужно создать нового пользователя
+        :param user_id: ID пользователя
         """
         pass
 

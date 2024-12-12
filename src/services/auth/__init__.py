@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Type
+from typing import Type
 from uuid import UUID
 
 from models import User
@@ -11,22 +11,10 @@ class IAuthRepository(ABC):
     @abstractmethod
     async def create_user(self, to_create: UserCreate) -> UserRead:
         """
-        Создаёт нового пользователя
+        Создаёт нового пользователя с ролью юзер
 
         :param to_create: Схема на основе которой
             нужно создать нового пользователя
-        """
-        pass
-
-    @abstractmethod
-    async def assign_roles_to_user(
-        self, user: User, role_ids: List
-    ) -> UserRead:
-        """
-        Назначает пользователю роли из списка ID ролей.
-
-        :param user: Пользователь
-        :param role_ids: Список ID ролей
         """
         pass
 

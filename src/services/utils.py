@@ -5,6 +5,7 @@ import jwt
 from fastapi import Depends, HTTPException, Request, status
 
 from core.config import settings
+from db.casher import AbstractCache, get_cacher
 
 
 async def decode_jwt_token(encoded_jwt_token: str):
@@ -79,21 +80,31 @@ async def get_user_id_from_access_token(
     except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Токен не валидный!",
+            detail="Token is invalid.",
         )
 
     expire = payload.get("exp")
     expire_time = datetime.fromtimestamp(int(expire))
     if (not expire) or (expire_time < datetime.now()):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Токен истек"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token is expired.",
         )
 
     user_id = payload.get("user_id")
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Не найден ID пользователя",
+            detail="User ID not found.",
+        )
+
+    token_id = payload.get("jti")
+    cacher: AbstractCache = await get_cacher()
+    token_is_in_blacklist = await cacher.get(f"blacklist:{token_id}")
+    if token_is_in_blacklist:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token is in blacklist.",
         )
 
     return user_id

@@ -1,5 +1,6 @@
 import logging
 
+import jwt
 from fastapi import Depends, HTTPException, status
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -18,6 +19,55 @@ logger = logging.getLogger(__name__)
 
 
 class AuthService:
+    """
+    Сервисный класс для обработки аутентификации
+        и авторизации пользователей.
+
+    Этот класс предоставляет методы для регистрации пользователей,
+    входа в систему, выхода, обновления токенов и управления паролями.
+    Он взаимодействует с репозиторием для выполнения операций CRUD
+    над данными пользователей и управляет сессиями и ролями пользователей.
+
+    Атрибуты:
+        repository (IAuthRepository): Интерфейс репозитория
+            для операций с данными пользователей.
+        cacher (AbstractCache): Интерфейс кэша
+            для управления сессионными токенами.
+
+    Методы:
+        signup_user(user_create: UserCreate, role_service: RoleService)
+            -> UserRead:
+            Регистрирует нового пользователя и назначает роли.
+
+        login_user(user_login: UserLogin, user_agent: str)
+            -> UserLoginResponse:
+            Аутентифицирует пользователя и возвращает токены доступа
+                и обновления.
+
+        logout_user(
+            user_id: str,
+            user_agent: str,
+            access_token: str,
+            refresh_token: str
+        ) -> None:
+            Выходит из системы пользователя, удаляя его активную сессию
+            и добавляя токен доступа в черный список.
+
+        refresh_token(
+            user_id: str,
+            user_agent: str,
+            access_token: str,
+            refresh_token: str
+        ) -> UserLoginResponse:
+            Выдает новые токены доступа и обновления для пользователя.
+
+        password_update(user_id: str, user_update: UserUpdate) -> None:
+            Обновляет пароль пользователя.
+
+    Исключения:
+        HTTPException: Поднимается при различных ошибках аутентификации,
+        таких как неверные учетные данные или проблемы с управлением токенами.
+    """
 
     def __init__(
         self,
@@ -33,23 +83,23 @@ class AuthService:
         """
         Регистрация пользователя.
         """
+
         user_create_dict = user_create.model_dump()
 
         password = user_create_dict.pop("password")
         user_create_dict["password_hash"] = generate_password_hash(password)
 
-        role_names = list(user_create_dict.pop("roles"))
-        role_names.append("user")
-        role_id_list = await self._get_role_ids_from_names(
-            set(role_names), role_service
-        )
+        try:
+            created_user = await self.repository.create_user(
+                User(**user_create_dict)
+            )
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Can't create user {user_create.login}",
+            )
 
-        user = User(**user_create_dict)
-
-        created_user = await self.repository.create_user(user)
-        await self.repository.assign_roles_to_user(created_user, role_id_list)
-
-        return user
+        return created_user
 
     async def login_user(
         self, user_login: UserLogin, user_agent: str
@@ -196,7 +246,7 @@ class AuthService:
         """
         try:
             access_token_dict = await decode_jwt_token(encoded_jwt_token)
-        except Exception:
+        except jwt.exceptions.PyJWTError:
             return None
 
         access_token_id = access_token_dict["jti"]
@@ -205,21 +255,6 @@ class AuthService:
             access_token_dict["user_id"],
             settings.JWT_TOKEN_EXPIRE_TIME_M * 60,
         )
-
-    async def _get_role_ids_from_names(
-        self, role_names: list, role_service: RoleService
-    ):
-        """
-        Получение списка ID ролей по списку имён ролей
-        через сервис ролей
-        """
-        role_id_list = []
-        for role_name in role_names:
-            role = await role_service.get_by_name(role_name)
-            if role:
-                role_id_list.append(role.id)
-
-        return role_id_list
 
 
 def get_auth_service(

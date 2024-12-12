@@ -70,8 +70,10 @@ async def signup_user(
     """
     Регистрация нового пользователя
     """
+    logger.info("signup user %s", user_create.login)
+
     result = await auth_service.signup_user(user_create, role_service)
-    logger.info(f"signup_user result = {result}")
+
     return result
 
 
@@ -92,6 +94,8 @@ async def login_user(
     Аутентификация пользователя по логину и паролю.
     Выдача токенов.
     """
+    logger.info("login attempt from user %s", user_login.login)
+
     result = await auth_service.login_user(user_login, user_agent)
 
     response.set_cookie(
@@ -141,6 +145,8 @@ async def refresh_token(
     Возвращает новую пару access_token/refresh_token токенов
     в обмен на корректный refresh_token
     """
+    logger.info("token refresh from user_id %s", user_id)
+
     access_token = request.cookies.get("access_token")
     refresh_token = request.cookies.get("refresh_token")
 
@@ -183,13 +189,18 @@ async def logout_user(
     """
     Выход пользователя - удаление токенов.
     """
+    logger.info("logout user_id %s", user_id)
+
     access_token = request.cookies.get("access_token")
     refresh_token = request.cookies.get("refresh_token")
+
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
+
     await auth_service.logout_user(
         user_id, user_agent, access_token, refresh_token
     )
+
     return None
 
 
@@ -207,8 +218,15 @@ async def password_update(
     """
     Обновление пароля пользователя.
     """
+    logger.info(
+        "password_update for user %s %s (user_id %s)",
+        user_update.first_name,
+        user_update.last_name,
+        user_id,
+    )
+
     result = await auth_service.password_update(user_id, user_update)
-    logger.info(f"password_update result = {result}")
+
     return result
 
 

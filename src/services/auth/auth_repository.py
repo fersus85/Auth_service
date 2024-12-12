@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Any, List, Type
+from typing import Any, Type
 from uuid import UUID
 
 from fastapi import Depends
@@ -44,39 +44,23 @@ class SQLAlchemyAuthRepository(IAuthRepository):
 
     async def create_user(self, user: User) -> UserRead:
         """
-        Создаёт нового пользователя
+        Создаёт нового пользователя с ролью user
 
         :param to_create: Схема на основе которой
             нужно создать нового пользователя
         """
 
+        stmt = select(Role).where(Role.name == "user")
+        role_instance = await self.db_session.scalar(stmt)
+        if role_instance:
+            user.roles.append(role_instance)
+        else:
+            logger.error("Role 'user' not found!")
+
         async with self._transaction_handler("Can't create new user"):
             self.db_session.add(user)
 
         return UserRead.model_validate(user)
-
-    async def assign_roles_to_user(
-        self, user: User, role_ids: List
-    ) -> UserRead:
-        """
-        Назначает пользователю роли из списка ID ролей.
-
-        :param user: Пользователь
-        :param role_ids: Список ID ролей
-        """
-        if not role_ids:
-            return None
-
-        role_mappings = [
-            {"role_id": role_id, "user_id": user.id} for role_id in role_ids
-        ]
-
-        async with self._transaction_handler("Can't assign roles"):
-            await self.db_session.execute(
-                Role.__table__.metadata.tables["content.user_roles"].insert(),
-                role_mappings,
-            )
-        return None
 
     async def get_user_by_login(self, login: str) -> User:
         """
@@ -158,7 +142,7 @@ class SQLAlchemyAuthRepository(IAuthRepository):
                 ActiveSession.device_info == user_agent,
             )
         )
-        async with self._transaction_handler("Can't create delete session"):
+        async with self._transaction_handler("Can't delete session"):
             await self.db_session.execute(stmt)
 
     async def insert_event_to_session_hist(
