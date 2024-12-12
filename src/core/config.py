@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     REDIS_HOST: str = "127.0.0.1"
     REDIS_PORT: int = 6379
 
+    JWT_TOKEN_SECRET_KEY: str
+    JWT_TOKEN_ALGORITHM: str = "HS256"
+    JWT_TOKEN_EXPIRE_TIME_M: int = 15
+
     @computed_field
     @property
     def DB_URI(self) -> PostgresDsn:
