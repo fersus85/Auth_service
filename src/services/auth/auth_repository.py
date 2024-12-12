@@ -52,10 +52,7 @@ class SQLAlchemyAuthRepository(IAuthRepository):
 
         stmt = select(Role).where(Role.name == "user")
         role_instance = await self.db_session.scalar(stmt)
-        if role_instance:
-            user.roles.append(role_instance)
-        else:
-            logger.error("Role 'user' not found!")
+        user.roles.append(role_instance)
 
         async with self._transaction_handler("Can't create new user"):
             self.db_session.add(user)
