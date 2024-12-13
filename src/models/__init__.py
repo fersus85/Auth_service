@@ -1,2 +1,11 @@
-# from .session import ActiveSession, SessionHistory  # noqa F401
-# from .user import Role, User  # noqa F401
+__all__ = (
+    "Role",
+    "User",
+    "ActiveSession",
+    "SessionHistory",
+    "SessionHistoryChoices",
+)
+
+
+from models.session import ActiveSession, SessionHistory, SessionHistoryChoices
+from models.user import Role, User
