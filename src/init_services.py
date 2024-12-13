@@ -1,25 +1,24 @@
-from typing import AsyncGenerator, Optional
-
-from sqlalchemy.ext.asyncio import AsyncSession
-
+import services
 from core.config import settings
+from db.postrges_db import psql
 from db.postrges_db.psql import PostgresService
-
-psql_sevice: Optional[PostgresService] = None
-
-
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Предоставляет объект AsyncSession."""
-    async for session in psql_sevice.session_getter():
-        yield session
+from services.auth.auth_repository import SQLAlchemyAuthRepository
+from services.role.role_repository import SQLAlchemyRoleRepository
+from services.user.user_repository import SQLAlchemyUserRepository
 
 
 async def init_postgresql_service():
-    global psql_sevice
-    psql_sevice = PostgresService(
+    psql.psql_service = PostgresService(
         url=str(settings.DB_URI),
         echo=settings.ECHO,
         echo_pool=settings.ECHO_POOL,
         pool_size=settings.POOL_SIZE,
         max_overflow=settings.MAX_OVERFLOW,
     )
+
+
+async def init_repositories():
+    services.data_access_factory = psql.get_db
+    services.role.role_repository_class = SQLAlchemyRoleRepository
+    services.auth.auth_repository_class = SQLAlchemyAuthRepository
+    services.user.user_repository_class = SQLAlchemyUserRepository

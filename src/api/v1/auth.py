@@ -15,7 +15,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.casher import AbstractCache, get_cacher
-from init_services import get_db
+from db.postrges_db.psql import get_db
 from schemas.auth import UserLogin, UserLoginResponse
 from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth.auth_service import AuthService, get_auth_service
