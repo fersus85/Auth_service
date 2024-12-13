@@ -6,6 +6,7 @@ from aiohttp import ClientResponse
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.mark.parametrize(
     "post_body, exp_status, exp_result",
     [
