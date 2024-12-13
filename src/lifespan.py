@@ -8,13 +8,12 @@ import db.casher as cacher
 import services as service
 from core.config import settings
 from db import redis
-from db.postrges_db import psql
-from db.postrges_db.psql import PostgresService, get_db
 from db.redis import RedisCache
+from init_services import get_db, init_postgresql_service, psql_sevice
 from models.user import Role
 from scripts.create_default_roles import insert_roles
-from services.role.role_repository import SQLAlchemyRoleRepository
 from services.auth.auth_repository import SQLAlchemyAuthRepository
+from services.role.role_repository import SQLAlchemyRoleRepository
 from services.user.user_repository import SQLAlchemyUserRepository
 
 logger = logging.getLogger(__name__)
@@ -29,13 +28,7 @@ DEFAULT_ROLES = [
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    psql.psql = PostgresService(
-        url=str(settings.DB_URI),
-        echo=settings.ECHO,
-        echo_pool=settings.ECHO_POOL,
-        pool_size=settings.POOL_SIZE,
-        max_overflow=settings.MAX_OVERFLOW,
-    )
+    await init_postgresql_service()
     redis.redis = Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
     cacher.cacher = RedisCache(redis.redis)
 
@@ -49,5 +42,5 @@ async def lifespan(app: FastAPI):
 
     logger.debug("Successfully connected")
     yield
-    await psql.psql.dispose()
+    await psql_sevice.dispose()
     logger.debug("Closing connections")
