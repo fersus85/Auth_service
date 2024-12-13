@@ -7,14 +7,16 @@ from sqlalchemy import delete, insert, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.user import Role
+from models import Role
+from models.user import user_roles
 from schemas.role import RoleCreate, RoleFull, RoleUpdate
 from services import get_data_access
-from services.role import IRoleRepository, get_role_repository_class
-
-
-class RoleServiceExc(Exception):
-    pass
+from services.role import (
+    IRoleRepository,
+    NoResult,
+    RoleServiceExc,
+    get_role_repository_class,
+)
 
 
 class SQLAlchemyRoleRepository(IRoleRepository):
@@ -84,17 +86,31 @@ class SQLAlchemyRoleRepository(IRoleRepository):
         """
         stmt = delete(Role).where(Role.id == role_id)
         async with self._transaction_handler("Can't delete role"):
-            await self.db_session.execute(stmt)
+            result = await self.db_session.execute(stmt)
+            if result.rowcount == 0:
+                raise NoResult(f"No role with id {role_id} found")
 
     async def assign(self, role_id: UUID, user_id: UUID) -> None:
         """
         Назначает роль пользователю
         """
-        stmt = insert(Role.__table__.metadata.tables["user_roles"]).values(
-            role_id=role_id, user_id=user_id
-        )
+        stmt = insert(user_roles).values(role_id=role_id, user_id=user_id)
         async with self._transaction_handler("Can't assign role"):
             await self.db_session.execute(stmt)
+
+    async def revoke(self, role_id: UUID, user_id: UUID) -> None:
+        """
+        Отзывает роль у пользователя
+
+        :raise RoleServiceExc: Если не удалось отозвать роль у пользователя
+        """
+        stmt = delete(user_roles).where(
+            user_roles.c.role_id == role_id and user_roles.c.user_id == user_id
+        )
+        async with self._transaction_handler("Can't revoke role"):
+            result = await self.db_session.execute(stmt)
+            if result.rowcount == 0:
+                raise NoResult(f"No role {role_id} assigned to user {user_id}")
 
     async def list_roles(
         self, name_filter: str | None = None

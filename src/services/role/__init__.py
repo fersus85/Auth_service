@@ -5,6 +5,14 @@ from uuid import UUID
 from schemas.role import RoleCreate, RoleFull, RoleUpdate
 
 
+class RoleServiceExc(Exception):
+    pass
+
+
+class NoResult(Exception):
+    pass
+
+
 class IRoleRepository(ABC):
     @abstractmethod
     async def create(self, to_create: RoleCreate) -> RoleFull:
@@ -51,6 +59,15 @@ class IRoleRepository(ABC):
     async def assign(self, role_id: UUID, user_id: UUID) -> None:
         """
         Назначает роль пользователю
+        """
+        pass
+
+    @abstractmethod
+    async def revoke(self, role_id: UUID, user_id: UUID) -> None:
+        """
+        Отзывает роль у пользователя
+
+        :raise RoleServiceExc: Если не удалось отозвать роль у пользователя
         """
         pass
 
