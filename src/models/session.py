@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import UUID, DateTime, ForeignKey, Index, String, func
+from sqlalchemy import UUID, DateTime, ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
@@ -21,7 +21,7 @@ class ActiveSession(Base):
     Поля:
     - id: Уникальный идентификатор сессии (UUID).
     - user_id: Идентификатор пользователя (ForeignKey на таблицу user).
-    - refresh_token_hash: Хэш refresh-токена,
+    - refresh_token_id: ID refresh-токена,
         используемого для обновления доступа.
     - issued_at: Время выпуска refresh-токена.
     - expires_at: Время истечения refresh-токена.
@@ -39,7 +39,7 @@ class ActiveSession(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("user.id", ondelete="CASCADE"), index=True
     )
-    refresh_token_hash: Mapped[str]
+    refresh_token_id: Mapped[uuid.UUID]
     issued_at: Mapped[datetime]
     expires_at: Mapped[datetime]
     device_info: Mapped[str]
@@ -72,7 +72,7 @@ class SessionHistory(Base):
             - USER_LOGOUT: Выход пользователя из системы.
     - user_id: Идентификатор пользователя (ForeignKey на таблицу user).
         Может быть NULL, если пользователь удалён.
-    - refresh_token_hash: Хэш refresh-токена.
+    - refresh_token_id: ID refresh-токена.
         Может быть NULL, если лог USER_LOGOUT
     - issued_at: Время выпуска refresh-токена.
         Может быть NULL, если лог USER_LOGOUT
@@ -95,7 +95,7 @@ class SessionHistory(Base):
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("user.id", ondelete="SET NULL"), index=True
     )
-    refresh_token_hash: Mapped[str] = mapped_column(String, default="")
+    refresh_token_id: Mapped[uuid.UUID | None]
     issued_at: Mapped[datetime]
     expires_at: Mapped[datetime]
     device_info: Mapped[str]
