@@ -4,6 +4,7 @@ PYTHON = python3
 BLACK_LINE_LENGTH = --line-length 79
 SRC_DIR = src
 IMAGES = fastapi:latest
+TEST_PATH = $(CURDIR)/tests
 
 
 all: up
@@ -46,6 +47,21 @@ format:
 	@echo "Запуск форматирования с помощью black..."
 	@$(PYTHON) -m black $(BLACK_LINE_LENGTH) $(SRC_DIR)
 
+# Поднятие инфраструктуры тестов
+test-up:
+	@docker compose --file docker-compose-tests.yml up -d --build
+	@sleep 5
+
+# Запуск тестов
+test:
+	@pip install -r tests/functional/requirements.txt >/dev/null
+	@export PYTHONPATH=$(CURDIR)
+	@pytest tests/functional/src/
+
+# Остановка инфраструктуры тестов
+test-down:
+	@docker compose --file docker-compose-tests.yml down
+
 # Вывод справки
 help:
 	@echo "Доступные команды:"
@@ -55,4 +71,7 @@ help:
 	@echo "  make install-dev    - Установка зависимостей dev"
 	@echo "  make lint           - Запуск линтера"
 	@echo "  make format         - Автоформатирование кода"
+	@echo "  make test-up        - Поднятие инфраструктуры тестов"
+	@echo "  make test-down      - Запуск тестов"
+	@echo "  make test           - Остановка инфраструктуры тестов"
 	@echo "  remove-images       - Удаление указанных образов"

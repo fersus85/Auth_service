@@ -86,13 +86,11 @@ pytho3 cli/superuser.py
 [Документация API](http://localhost:80/api/openapi)
 
 ## Тестирование TODO
-Тесты запускаются локально:
+Для запуска тестов, выполните команды:
 ```bash
-pass
-```
-или используйте команду:
-```bash
+  make test-up
   make test
+  make test-down
 ```
 
 ### Важные сценарии тестирования
