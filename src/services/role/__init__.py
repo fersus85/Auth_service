@@ -5,6 +5,14 @@ from uuid import UUID
 from schemas.role import RoleCreate, RoleFull, RoleUpdate
 
 
+class RoleServiceExc(Exception):
+    pass
+
+
+class NoResult(Exception):
+    pass
+
+
 class IRoleRepository(ABC):
     @abstractmethod
     async def create(self, to_create: RoleCreate) -> RoleFull:

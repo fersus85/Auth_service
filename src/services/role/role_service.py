@@ -62,7 +62,7 @@ class RoleService:
         """
         Удаляет роль по её идентификатору
 
-        :raise RoleServiceExc: Если не удалось удалить роль
+        :raise NoResult: Если не удалось удалить роль
         """
 
         await self.repository.delete(role_id)
@@ -80,7 +80,7 @@ class RoleService:
         """
         Отзывает роль у пользователя
 
-        :raise RoleServiceExc: Если не удалось отозвать роль у пользователя
+        :raise NoResult: Если не удалось отозвать роль у пользователя
         """
 
         await self.repository.revoke(role_id, user_id)

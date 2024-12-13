@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.params import Depends
 
 from schemas.role import RoleCreate, RoleRead, RoleUpdate
-from services.role.role_repository import RoleServiceExc
+from services.role import NoResult, RoleServiceExc
 from services.role.role_service import (
     PermissionChecker,
     RoleService,
@@ -79,7 +79,13 @@ async def update_role(
 async def delete_role(
     role_id: UUID, role_service: RoleService = Depends(get_role_service)
 ) -> None:
-    await role_service.delete(role_id)
+    try:
+        await role_service.delete(role_id)
+    except NoResult:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No role with id {role_id} found",
+        )
 
 
 @router.get(
@@ -127,4 +133,10 @@ async def revoke_role(
     user_id: UUID,
     role_service: RoleService = Depends(get_role_service),
 ) -> None:
-    await role_service.revoke(role_id, user_id)
+    try:
+        return await role_service.revoke(role_id, user_id)
+    except NoResult:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No role {role_id} assigned to user {user_id}",
+        )

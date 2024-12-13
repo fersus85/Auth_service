@@ -11,11 +11,12 @@ from models import Role
 from models.user import user_roles
 from schemas.role import RoleCreate, RoleFull, RoleUpdate
 from services import get_data_access
-from services.role import IRoleRepository, get_role_repository_class
-
-
-class RoleServiceExc(Exception):
-    pass
+from services.role import (
+    IRoleRepository,
+    NoResult,
+    RoleServiceExc,
+    get_role_repository_class,
+)
 
 
 class SQLAlchemyRoleRepository(IRoleRepository):
@@ -85,7 +86,9 @@ class SQLAlchemyRoleRepository(IRoleRepository):
         """
         stmt = delete(Role).where(Role.id == role_id)
         async with self._transaction_handler("Can't delete role"):
-            await self.db_session.execute(stmt)
+            result = await self.db_session.execute(stmt)
+            if result.rowcount == 0:
+                raise NoResult(f"No role with id {role_id} found")
 
     async def assign(self, role_id: UUID, user_id: UUID) -> None:
         """
@@ -105,7 +108,9 @@ class SQLAlchemyRoleRepository(IRoleRepository):
             user_roles.c.role_id == role_id and user_roles.c.user_id == user_id
         )
         async with self._transaction_handler("Can't revoke role"):
-            await self.db_session.execute(stmt)
+            result = await self.db_session.execute(stmt)
+            if result.rowcount == 0:
+                raise NoResult(f"No role {role_id} assigned to user {user_id}")
 
     async def list_roles(
         self, name_filter: str | None = None
