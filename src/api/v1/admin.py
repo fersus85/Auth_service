@@ -1,6 +1,7 @@
 from typing import List
 from uuid import UUID
 
+import logging
 from fastapi import APIRouter, HTTPException, status
 from fastapi.params import Depends
 
@@ -11,6 +12,8 @@ from services.role.role_service import (
     RoleService,
     get_role_service,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/role",
@@ -45,7 +48,9 @@ async def create_role(
     role: RoleCreate, role_service: RoleService = Depends(get_role_service)
 ) -> RoleRead:
     try:
-        return await role_service.create(role)
+        result = await role_service.create(role)
+        logger.info(f"create_role result = {result}")
+        return result
     except RoleServiceExc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

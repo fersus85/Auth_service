@@ -24,7 +24,7 @@ class UserRole(UserBase):
 
 
 # Ниже User для CRUD
-class UserCreate(UserRole):
+class UserCreate(UserBase):
     password: str
 
 
