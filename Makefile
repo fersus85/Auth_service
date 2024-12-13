@@ -72,6 +72,6 @@ help:
 	@echo "  make lint           - Запуск линтера"
 	@echo "  make format         - Автоформатирование кода"
 	@echo "  make test-up        - Поднятие инфраструктуры тестов"
-	@echo "  make test-down      - Запуск тестов"
-	@echo "  make test           - Остановка инфраструктуры тестов"
+	@echo "  make test           - Запуск тестов"
+	@echo "  make test-down      - Остановка инфраструктуры тестов"
 	@echo "  remove-images       - Удаление указанных образов"
