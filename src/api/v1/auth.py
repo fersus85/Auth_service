@@ -1,7 +1,17 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from pydantic import BaseModel
 
 from responses.auth_responses import (
@@ -212,16 +222,15 @@ async def password_update(
 
 @router.post(
     "/verify",
-    response_model=BaseModel,
     status_code=status.HTTP_200_OK,
     summary="User permissions verify",
     description="User permissions verify endpoint",
 )
 async def verify_role(
-    access_token: str,
-    role: str,
+    access_token: str = Query(description="Токен доступа"),
+    role: str = Query(description="Имя роли"),
     auth_service: AuthService = Depends(get_auth_service),
-) -> BaseModel:
+) -> None:
     """
     Проверка наличия роли в пользовательском токене доступа.
     """
@@ -231,4 +240,4 @@ async def verify_role(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Role {role} is not in token roles",
         )
-    return {}
+    return None
