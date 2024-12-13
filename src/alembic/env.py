@@ -7,9 +7,10 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 from core.config import settings
+from models import ActiveSession, Role, SessionHistory, User, user_roles
 from models.base import Base
-from models.session import ActiveSession, SessionHistory  # noqa: F401
-from models.user import Role, User, user_roles  # noqa: F401
+
+__all__ = ("ActiveSession", "SessionHistory", "Role", "User", "user_roles")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
