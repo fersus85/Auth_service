@@ -252,4 +252,3 @@ async def verify_role(
             detail=f"Role {role} is not in token roles",
         )
     return {}
-    
