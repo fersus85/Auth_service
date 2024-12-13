@@ -47,10 +47,10 @@ class PostgresService:
             yield session
 
 
-psql: Optional[PostgresService] = None
+psql_service: Optional[PostgresService] = None
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Предоставляет объект AsyncSession."""
-    async for session in psql.session_getter():
+    async for session in psql_service.session_getter():
         yield session

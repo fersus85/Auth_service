@@ -20,6 +20,6 @@ async def insert_roles(session: AsyncSession, roles: list[Role]):
     role_mappings = [
         {"name": role.name, "description": role.description} for role in roles
     ]
-    logger.info("Inserting roles...")
+    logger.debug("Inserting roles...")
     await session.execute(insert(Role), role_mappings)
     await session.commit()

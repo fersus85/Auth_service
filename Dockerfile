@@ -29,6 +29,8 @@ ENV PYTHONPATH=/app
 
 FROM base AS deploy
 
+ENV PYTHONPATH=/app/src
+
 EXPOSE 8000
 
 ENTRYPOINT ["sh", "scripts/start_app.sh"]
