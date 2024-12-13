@@ -1,87 +1,71 @@
-from sqlalchemy import insert, select
+import asyncio
+from functools import wraps
+
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from werkzeug.security import generate_password_hash
 
+from core.config import settings
+from db.postrges_db.psql import PostgresService
 from models.user import Role, User
+from schemas.user import UserCreate
+
+
+def async_launcher(func):
+    """Обёртка для запуска в Typer async funcs"""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return asyncio.run(func(*args, **kwargs))
+
+    return wrapper
+
+
+async def init_postgresql_service():
+    """Возвращает новый экземпляр PostgresService"""
+    return PostgresService(
+        url=str(settings.DB_URI),
+        echo=settings.ECHO,
+        echo_pool=settings.ECHO_POOL,
+        pool_size=settings.POOL_SIZE,
+        max_overflow=settings.MAX_OVERFLOW,
+    )
 
 
 class UserAlreadyExistsError(Exception):
     def __init__(self, login):
-        super().__init__(f"User '{login}' already exists.")
+        super().__init__(f"Login: '{login}' is already taken another user")
         self.login = login
 
 
-class RolesNotAssignedError(Exception):
-    def __init__(self, role):
-        super().__init__(f"Role '{role}' did not assighed.")
-        self.role = role
-
-
-async def create_user(
-    session: AsyncSession, login: str, password: str
-) -> User:
+async def insert_superuser(session: AsyncSession, creds: UserCreate) -> User:
     """
-    Создает нового пользователя с указанным логином и паролем.
+    Создает нового супер пользователя с указанным логином и паролем.
 
-    Проверяет, существует ли пользователь с данным логином.
-    Если пользователь уже существует, выбрасывает
+    В случае неудачи выбрасывает
     исключение UserAlreadyExistsError.
 
     Args:
         session (AsyncSession): Асинхронная сессия базы данных.
-        login (str): Логин нового пользователя.
-        password (str): Пароль нового пользователя.
-
-    Returns:
-        User: Созданный объект пользователя.
+        creds (UserCreate): пароль и логин
 
     Raises:
-        UserAlreadyExistsError: Если пользователь с
-        данным логином уже существует.
+        UserAlreadyExistsError: Если не удалось создаьть запись
     """
-    new_user = User(
-        login=login, password_hash=generate_password_hash(password)
-    )
-    session.add(new_user)
-    try:
-        await session.commit()
-        return new_user
-    except IntegrityError as e:
-        await session.rollback()
-        raise UserAlreadyExistsError(login) from e
+    ROLE: str = "superuser"
+    user_create_dict = creds.model_dump()
 
+    password = user_create_dict.pop("password")
+    user_create_dict["password_hash"] = generate_password_hash(password)
+    new_su = User(**user_create_dict)
 
-async def assign_role(
-    session: AsyncSession, user: User, role_name: str
-) -> None:
-    """
-        Назначает указанную роль пользователю.
-
-        Проверяет, существует ли роль с данным именем.
-        Если роль не найдена, выбрасывает исключение
-        RolesNotAssignedError(Exception):
-    .
-
-        Args:
-            session (AsyncSession): Асинхронная сессия базы данных.
-            user (User): Объект пользователя, которому будет назначена роль.
-            role_name (str): Имя роли, которую нужно назначить.
-
-        Raises:
-            RolesNotAssignedError: Если роль с данным именем не найдена.
-    """
-    stmt = select(Role).where(Role.name == role_name)
+    stmt = select(Role).where(Role.name == ROLE)
     role_instance = await session.scalar(stmt)
-
-    if not role_instance:
-        raise RolesNotAssignedError(role_name)
+    new_su.roles.append(role_instance)
     try:
-        stmt = insert(User.roles).values(
-            role_id=role_instance.id, user_id=user.id
-        )
-        await session.execute(stmt)
+        session.add(new_su)
         await session.commit()
     except IntegrityError as e:
         await session.rollback()
-        raise RolesNotAssignedError(role_name) from e
+        raise UserAlreadyExistsError(creds.login) from e
