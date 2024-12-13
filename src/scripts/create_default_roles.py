@@ -3,8 +3,9 @@ import logging
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.session import ActiveSession  # noqa F401
-from models.user import Role
+from models import ActiveSession, Role
+
+__all__ = ("Role", "ActiveSession")
 
 logger = logging.getLogger(__name__)
 

@@ -2,8 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Type
 from uuid import UUID
 
-from models import User
-from models.session import SessionHistoryChoices
+from models import SessionHistoryChoices, User
 from schemas.user import UserCreate, UserRead
 
 
