@@ -87,6 +87,13 @@ class AuthService:
         user_create_dict = user_create.model_dump()
 
         password = user_create_dict.pop("password")
+
+        if len(password) < 8:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password length must be 8 or more characters",
+            )
+
         user_create_dict["password_hash"] = generate_password_hash(password)
 
         try:

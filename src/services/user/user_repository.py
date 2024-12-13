@@ -61,12 +61,8 @@ class SQLAlchemyUserRepository(IUserRepository):
             .where(
                 and_(
                     SessionHistory.user_id == user_id,
-                    SessionHistory.name.in_(
-                        [
-                            SessionHistoryChoices.LOGIN_WITH_PASSWORD,
-                            SessionHistoryChoices.REFRESH_TOKEN_UPDATE,
-                        ]
-                    ),
+                    SessionHistory.name
+                    == SessionHistoryChoices.LOGIN_WITH_PASSWORD,
                 )
             )
             .order_by(SessionHistory.created_at)
