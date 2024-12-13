@@ -3,35 +3,29 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from db.postrges_db import psql
+from db.postrges_db.psql import psql_service
 from init_services import (
     init_casher,
     init_postgresql_service,
     init_repositories,
+    insert_default_roles,
 )
-from models.user import Role
-from scripts.create_default_roles import insert_roles
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_ROLES = [
-    Role(name="superuser", description="Может всё"),
-    Role(name="admin", description="Администратор"),
-    Role(name="subscriber", description="Пользователь с допами"),
-    Role(name="user", description="Зарегестрированный пользователь"),
-]
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """
+    Иницилизирует сервисы перед стартом
+    приложения и зыкрывает соединения после
+    """
     await init_postgresql_service()
     await init_repositories()
     await init_casher()
+    await insert_default_roles()
 
-    async for session in psql.get_db():
-        await insert_roles(session, DEFAULT_ROLES)
-
-    logger.debug("Successfully connected")
+    logger.info("App ready")
     yield
-    await psql.psql_sevice.dispose()
+    await psql_service.dispose()
     logger.debug("Closing connections")

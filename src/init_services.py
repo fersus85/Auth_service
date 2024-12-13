@@ -6,6 +6,7 @@ from core.config import settings
 from db import redis
 from db.postrges_db import psql
 from db.postrges_db.psql import PostgresService
+from scripts.create_default_roles import insert_roles
 from services.auth.auth_repository import SQLAlchemyAuthRepository
 from services.role.role_repository import SQLAlchemyRoleRepository
 from services.user.user_repository import SQLAlchemyUserRepository
@@ -31,3 +32,8 @@ async def init_repositories():
 async def init_casher():
     redis.redis = Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
     cacher.cacher = redis.RedisCache(redis.redis)
+
+
+async def insert_default_roles():
+    async for session in psql.get_db():
+        await insert_roles(session, settings.DEFAULT_ROLES)

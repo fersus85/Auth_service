@@ -4,6 +4,8 @@ from pydantic import PostgresDsn, computed_field
 from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from models.user import Role
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -41,6 +43,15 @@ class Settings(BaseSettings):
             port=self.POSTGRES_PORT,
             path=self.POSTGRES_DB,
         )
+
+    @property
+    def DEFAULT_ROLES(self):
+        return [
+            Role(name="superuser", description="Может всё"),
+            Role(name="admin", description="Администратор"),
+            Role(name="subscriber", description="Пользователь с допами"),
+            Role(name="user", description="Зарегестрированный пользователь"),
+        ]
 
 
 settings = Settings()
