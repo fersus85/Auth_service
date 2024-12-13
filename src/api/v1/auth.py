@@ -237,5 +237,19 @@ async def password_update(
     summary="User permissions verify",
     description="User permissions verify endpoint",
 )
-async def verify_role() -> BaseModel:
+async def verify_role(
+    access_token: str,
+    role: str,
+    auth_service: AuthService = Depends(get_auth_service),
+) -> BaseModel:
+    """
+    Проверка наличия роли в пользовательском токене доступа.
+    """
+    result = await auth_service.verify_role(access_token, role)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Role {role} is not in token roles",
+        )
     return {}
+    
