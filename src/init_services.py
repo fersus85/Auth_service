@@ -1,5 +1,9 @@
+from redis.asyncio import Redis
+
+import db.casher as cacher
 import services
 from core.config import settings
+from db import redis
 from db.postrges_db import psql
 from db.postrges_db.psql import PostgresService
 from services.auth.auth_repository import SQLAlchemyAuthRepository
@@ -22,3 +26,8 @@ async def init_repositories():
     services.role.role_repository_class = SQLAlchemyRoleRepository
     services.auth.auth_repository_class = SQLAlchemyAuthRepository
     services.user.user_repository_class = SQLAlchemyUserRepository
+
+
+async def init_casher():
+    redis.redis = Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
+    cacher.cacher = redis.RedisCache(redis.redis)

@@ -2,14 +2,13 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from redis.asyncio import Redis
 
-import db.casher as cacher
-from core.config import settings
-from db import redis
 from db.postrges_db import psql
-from db.redis import RedisCache
-from init_services import init_postgresql_service, init_repositories
+from init_services import (
+    init_casher,
+    init_postgresql_service,
+    init_repositories,
+)
 from models.user import Role
 from scripts.create_default_roles import insert_roles
 
@@ -27,8 +26,7 @@ DEFAULT_ROLES = [
 async def lifespan(app: FastAPI):
     await init_postgresql_service()
     await init_repositories()
-    redis.redis = Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
-    cacher.cacher = RedisCache(redis.redis)
+    await init_casher()
 
     async for session in psql.get_db():
         await insert_roles(session, DEFAULT_ROLES)
