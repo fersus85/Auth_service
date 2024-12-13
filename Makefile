@@ -51,6 +51,7 @@ format:
 test-up:
 	@docker compose --file docker-compose-tests.yml up -d --build
 	@sleep 5
+	@docker compose --file docker-compose-tests.yml exec fastapi-auth alembic upgrade head
 
 # Запуск тестов
 test:
