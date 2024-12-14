@@ -3,8 +3,7 @@ from typing import Any, AsyncGenerator, Callable, Dict
 
 import aiohttp
 import pytest_asyncio
-
-from tests.functional.settings import test_settings
+from settings import test_settings
 
 
 @pytest_asyncio.fixture(scope="session")
