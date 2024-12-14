@@ -1,4 +1,4 @@
-name: Auth-Service
+name: Auth-Service-Tests
 
 services:
 
@@ -35,20 +35,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    ports:
+      - "8000:8000"
     restart: always
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-
-  nginx:
-    image: nginx:1.27.2
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    ports:
-      - "80:80"
-    depends_on:
-      fastapi-auth:
-        condition: service_healthy
-    restart: always

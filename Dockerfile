@@ -19,16 +19,6 @@ USER auth_user
 
 ENV PATH=$PATH:/home/auth_user/.local/bin
 
-FROM base AS test
-
-COPY ./tests /app/tests
-
-RUN chmod +x /app/tests/functional/start_tests.sh
-
-ENV PYTHONPATH=/app
-
-FROM base AS deploy
-
 ENV PYTHONPATH=/app/src
 
 EXPOSE 8000
