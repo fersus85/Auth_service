@@ -1,21 +1,9 @@
 import logging
 from typing import Annotated
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    Header,
-    HTTPException,
-    Request,
-    Response,
-    status,
-)
+from fastapi import APIRouter, Depends, Header, Request, Response, status
 from pydantic import BaseModel
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.casher import AbstractCache, get_cacher
-from db.postrges_db.psql import get_db
 from schemas.auth import UserLogin, UserLoginResponse
 from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth.auth_service import AuthService, get_auth_service
@@ -28,31 +16,6 @@ from services.utils import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
-
-
-@router.get(
-    "/",
-    status_code=status.HTTP_200_OK,
-    response_model=BaseModel,
-    summary="Temporary endpont for test",
-    description="Temporary endpont for test",
-)
-async def auth(
-    db: AsyncSession = Depends(get_db),
-    cacher: AbstractCache = Depends(get_cacher),
-):
-    try:
-        result = await db.execute(text("SELECT 1"))
-        await cacher.set("Try", "probe", 180)
-        data = await cacher.get("Try")
-        value = result.scalar()
-        return {
-            "res": value,
-            "msg": "Database connection is working!",
-            "from_cache": data,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post(
