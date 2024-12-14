@@ -1,11 +1,9 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import Request
 from fastapi.params import Depends
 
 from schemas.role import RoleCreate, RoleFull, RoleUpdate
-from schemas.user import UserBase
 from services.role import IRoleRepository
 from services.role.role_repository import get_repository
 
