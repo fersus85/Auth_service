@@ -205,7 +205,7 @@ class AuthService:
 
         await self._blacklist_access_token(access_token)
 
-        user_roles = self.repository.get_user_roles(user_id)
+        user_roles = await self.repository.get_user_roles(user_id)
         (
             access_token_encoded_jwt,
             refresh_token_encoded_jwt,

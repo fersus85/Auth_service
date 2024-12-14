@@ -101,7 +101,7 @@ class SQLAlchemyAuthRepository(IAuthRepository):
         stmt = select(Role.name).join(User.roles).where(User.id == id)
         result = await self.db_session.scalars(stmt)
 
-        return result.all()
+        return result.all() or []
 
     async def check_refresh_token_in_active_session(
         self, user_id: UUID, user_agent: str, refresh_token: str
