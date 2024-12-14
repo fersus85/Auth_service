@@ -75,7 +75,7 @@ class AuthService:
         self,
         repository: IAuthRepository,
         cacher: AbstractCache,
-        user_service: UserService
+        user_service: UserService,
     ):
         self.repository = repository
         self.cacher = cacher
@@ -136,9 +136,10 @@ class AuthService:
                 detail="Invalid login or password",
             )
 
-        (access_token_encoded_jwt, refresh_token_encoded_jwt) = (
-            await generate_new_tokens(user.id, user.roles)
-        )
+        (
+            access_token_encoded_jwt,
+            refresh_token_encoded_jwt,
+        ) = await generate_new_tokens(user.id, user.roles)
 
         await self.repository.delete_active_session(user.id, user_agent)
 
@@ -205,9 +206,10 @@ class AuthService:
         await self._blacklist_access_token(access_token)
 
         user_roles = self.repository.get_user_roles(user_id)
-        (access_token_encoded_jwt, refresh_token_encoded_jwt) = (
-            await generate_new_tokens(user_id, user_roles)
-        )
+        (
+            access_token_encoded_jwt,
+            refresh_token_encoded_jwt,
+        ) = await generate_new_tokens(user_id, user_roles)
 
         await self.repository.insert_new_active_session(
             user_id, user_agent, refresh_token_encoded_jwt
@@ -280,7 +282,5 @@ def get_auth_service(
     Функция для создания экземпляра класса AuthService
     """
     return AuthService(
-        repository=repository,
-        cacher=cacher,
-        user_service=user_service
+        repository=repository, cacher=cacher, user_service=user_service
     )

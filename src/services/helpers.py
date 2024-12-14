@@ -12,9 +12,11 @@ class PermissionChecker:
     Класс для проверки прав доступа пользователя.
 
     Этот класс используется как зависимость в маршрутах FastAPI для проверки,
-    имеет ли текущий пользователь хотя бы одну из требуемых ролей. Если у пользователя
-    недостаточно прав, выбрасывается исключение HTTP 403 Forbidden.
+    имеет ли текущий пользователь хотя бы одну из требуемых ролей.
+    Если у пользователя недостаточно прав,
+    выбрасывается исключение HTTP 403 Forbidden.
     """
+
     def __init__(self, required: Set[str]) -> None:
         self.required = required
 
@@ -29,7 +31,7 @@ class PermissionChecker:
         if not any(True for role in access.roles if role in self.required):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions"
+                detail="Not enough permissions",
             )
 
         return True

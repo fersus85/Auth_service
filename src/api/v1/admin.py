@@ -1,17 +1,14 @@
+import logging
 from typing import List
 from uuid import UUID
 
-import logging
 from fastapi import APIRouter, HTTPException, status
 from fastapi.params import Depends
 
 from schemas.role import RoleCreate, RoleRead, RoleUpdate
 from services.helpers import PermissionChecker
 from services.role import NoResult, RoleServiceExc
-from services.role.role_service import (
-    RoleService,
-    get_role_service,
-)
+from services.role.role_service import RoleService, get_role_service
 
 logger = logging.getLogger(__name__)
 

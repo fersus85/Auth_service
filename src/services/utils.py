@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 from uuid import UUID, uuid4
 
 import jwt
@@ -57,7 +57,6 @@ async def generate_new_tokens(user_id: UUID, roles: List[str]):
 
 
 def get_access_token_from_cookies(request: Request):
-
     token = request.cookies.get("access_token")
 
     if not token:
@@ -72,7 +71,6 @@ def get_access_token_from_cookies(request: Request):
 async def get_user_id_from_access_token(
     access_token: str = Depends(get_access_token_from_cookies),
 ):
-
     try:
         payload = jwt.decode(
             access_token,
@@ -113,7 +111,6 @@ async def get_user_id_from_access_token(
 
 
 def get_refresh_token_from_cookies(request: Request):
-
     token = request.cookies.get("refresh_token")
 
     if not token:
@@ -128,7 +125,6 @@ def get_refresh_token_from_cookies(request: Request):
 async def get_user_id_from_refresh_token(
     refresh_token: str = Depends(get_refresh_token_from_cookies),
 ):
-
     try:
         payload = jwt.decode(
             refresh_token,

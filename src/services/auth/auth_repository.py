@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Any, Type, List
+from typing import Any, List, Type
 from uuid import UUID
 
 from fastapi import Depends
@@ -75,7 +75,8 @@ class SQLAlchemyAuthRepository(IAuthRepository):
         Получение данных о пользователе с ролями по логину
         """
         stmt = (
-            select(User).options(joinedload(User.roles))
+            select(User)
+            .options(joinedload(User.roles))
             .where(User.login == login)
         )
         user = await self.db_session.scalar(stmt)
@@ -86,16 +87,14 @@ class SQLAlchemyAuthRepository(IAuthRepository):
             id=user.id,
             login=user.login,
             password_hash=user.password_hash,
-            roles=roles
+            roles=roles,
         )
 
     async def get_user_roles(self, id: str) -> List[str]:
         """
         Получение ролей пользователя по логину
         """
-        stmt = (
-            select(Role.name).join(User.roles).where(User.id == id)
-        )
+        stmt = select(Role.name).join(User.roles).where(User.id == id)
         result = await self.db_session.scalars(stmt)
 
         return result.all()

@@ -12,8 +12,12 @@ class ProtoJWT(BaseModel):
 
     jti: UUID = Field(..., description="UUID токена")
     user_id: UUID = Field(..., description="UUID пользователя")
-    iat: float = Field(..., description="Время создания токена в формате epoch")
-    exp: float = Field(..., description="Время истечения токена в формате epoch")
+    iat: float = Field(
+        ..., description="Время создания токена в формате epoch"
+    )
+    exp: float = Field(
+        ..., description="Время истечения токена в формате epoch"
+    )
     roles: List[str] = Field(..., description="Список связанных ролей")
 
     @property
