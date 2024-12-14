@@ -19,7 +19,8 @@ class UserFull(UserBase):
     created_at: datetime | None = None
 
 
-class UserRole(UserBase):
+class UserRole(UserFull):
+    password_hash: str
     roles: List[str] | None = None
 
 
