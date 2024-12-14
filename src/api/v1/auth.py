@@ -5,6 +5,7 @@ from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
 from pydantic import BaseModel
 
 from responses.auth_responses import (
+    get_change_psw_response,
     get_login_response,
     get_signup_response,
     get_token_refr_response,
@@ -184,9 +185,13 @@ async def logout_user(
     status_code=status.HTTP_200_OK,
     summary="User password update",
     description="User password update endpoint",
+    responses=get_change_psw_response(),
 )
 async def password_update(
-    user_update: UserUpdate,
+    user_update: UserUpdate = Body(
+        ...,
+        description="creds for update password",
+    ),
     user_id: str = Depends(get_user_id_from_access_token),
     auth_service: AuthService = Depends(get_auth_service),
 ) -> None:

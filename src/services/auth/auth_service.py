@@ -1,7 +1,7 @@
 import logging
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from core.config import settings
@@ -208,16 +208,10 @@ class AuthService:
         Смена пароля пользователю.
         """
         if not user_update.password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="New password is empty!",
-            )
+            raise PasswordOrLoginExc()
 
         if len(user_update.password) < 8:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password length must be 8 or more characters",
-            )
+            raise PasswordOrLoginExc()
 
         new_password_hash = generate_password_hash(user_update.password)
 
