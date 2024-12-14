@@ -70,7 +70,9 @@ class SQLAlchemyAuthRepository(IAuthRepository):
         user = await self.db_session.scalar(stmt)
         return user
 
-    async def get_user_with_roles_by_login(self, login: str) -> UserRole:
+    async def get_user_with_roles_by_login(
+        self, login: str
+    ) -> UserRole | None:
         """
         Получение данных о пользователе с ролями по логину
         """
@@ -80,6 +82,8 @@ class SQLAlchemyAuthRepository(IAuthRepository):
             .where(User.login == login)
         )
         user = await self.db_session.scalar(stmt)
+        if not user:
+            return None
 
         roles = [role.name for role in user.roles]
 
