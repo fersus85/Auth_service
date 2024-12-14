@@ -1,24 +1,21 @@
+import logging
 from typing import List
 from uuid import UUID
 
-import logging
 from fastapi import APIRouter, HTTPException, status
 from fastapi.params import Depends
 
 from schemas.role import RoleCreate, RoleRead, RoleUpdate
+from services.helpers import PermissionChecker
 from services.role import NoResult, RoleServiceExc
-from services.role.role_service import (
-    PermissionChecker,
-    RoleService,
-    get_role_service,
-)
+from services.role.role_service import RoleService, get_role_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/role",
     tags=["Admin"],
-    dependencies=[Depends(PermissionChecker(required=["admin"]))],
+    dependencies=[Depends(PermissionChecker(required={"admin", "superuser"}))],
 )
 
 
@@ -70,7 +67,15 @@ async def update_role(
     role_update: RoleUpdate,
     role_service: RoleService = Depends(get_role_service),
 ) -> RoleRead:
-    if (role := await role_service.update(role_id, role_update)) is None:
+    try:
+        role = await role_service.update(role_id, role_update)
+    except RoleServiceExc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to update role",
+        )
+
+    if role is None:
         raise HTTPException(status_code=404, detail="Role not found")
     return role
 

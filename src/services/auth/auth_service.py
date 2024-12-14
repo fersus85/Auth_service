@@ -13,6 +13,7 @@ from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth import IAuthRepository
 from services.auth.auth_repository import get_repository
 from services.role.role_service import RoleService
+from services.user.user_service import UserService, get_user_service
 from services.utils import decode_jwt_token, generate_new_tokens
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ class AuthService:
             для операций с данными пользователей.
         cacher (AbstractCache): Интерфейс кэша
             для управления сессионными токенами.
+        user_service (UserService): Сервис пользователей, для получения ролей
 
     Методы:
         signup_user(user_create: UserCreate, role_service: RoleService)
@@ -73,9 +75,11 @@ class AuthService:
         self,
         repository: IAuthRepository,
         cacher: AbstractCache,
+        user_service: UserService,
     ):
         self.repository = repository
         self.cacher = cacher
+        self.user_service = user_service
 
     async def signup_user(
         self, user_create: UserCreate, role_service: RoleService
@@ -114,7 +118,9 @@ class AuthService:
         """
         Аутентификация пользователя логином и паролем.
         """
-        user = await self.repository.get_user_by_login(user_login.login)
+        user = await self.repository.get_user_with_roles_by_login(
+            user_login.login
+        )
 
         if not user:
             logger.error("User %s not found", user_login.login)
@@ -130,9 +136,10 @@ class AuthService:
                 detail="Invalid login or password",
             )
 
-        (access_token_encoded_jwt, refresh_token_encoded_jwt) = (
-            await generate_new_tokens(user.id)
-        )
+        (
+            access_token_encoded_jwt,
+            refresh_token_encoded_jwt,
+        ) = await generate_new_tokens(user.id, user.roles)
 
         await self.repository.delete_active_session(user.id, user_agent)
 
@@ -198,9 +205,11 @@ class AuthService:
 
         await self._blacklist_access_token(access_token)
 
-        (access_token_encoded_jwt, refresh_token_encoded_jwt) = (
-            await generate_new_tokens(user_id)
-        )
+        user_roles = await self.repository.get_user_roles(user_id)
+        (
+            access_token_encoded_jwt,
+            refresh_token_encoded_jwt,
+        ) = await generate_new_tokens(user_id, user_roles)
 
         await self.repository.insert_new_active_session(
             user_id, user_agent, refresh_token_encoded_jwt
@@ -267,8 +276,11 @@ class AuthService:
 def get_auth_service(
     repository: IAuthRepository = Depends(get_repository),
     cacher: AbstractCache = Depends(get_cacher),
+    user_service: UserService = Depends(get_user_service),
 ) -> AuthService:
     """
     Функция для создания экземпляра класса AuthService
     """
-    return AuthService(repository=repository, cacher=cacher)
+    return AuthService(
+        repository=repository, cacher=cacher, user_service=user_service
+    )
