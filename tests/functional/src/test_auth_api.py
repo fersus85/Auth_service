@@ -26,8 +26,8 @@ from aiohttp import ClientResponse
                 "last_name": "Petrov",
                 "password": "Qwerty123",
             },
-            HTTPStatus.BAD_REQUEST,
-            "Can't create user terminator1",
+            HTTPStatus.CONFLICT,
+            "Record already exists",
             id="create the same user",
         ),
         pytest.param(
@@ -38,7 +38,7 @@ from aiohttp import ClientResponse
                 "password": "123",
             },
             HTTPStatus.BAD_REQUEST,
-            "Password length must be 8 or more characters",
+            "Password length must > 7 and login length > 3",
             id="create user with short password",
         ),
     ],
@@ -185,7 +185,7 @@ async def test_refresh(
         pytest.param(
             {"password": "qwe"},
             HTTPStatus.BAD_REQUEST,
-            "Password length must be 8 or more characters",
+            "Password length must > 7 and login length > 3",
             id="short password",
         ),
         pytest.param(

@@ -5,6 +5,13 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 from fastapi.params import Depends
 
+from responses.admin_responses import (
+    get_role_assign_response,
+    get_role_create_response,
+    get_role_del_response,
+    get_role_info_response,
+    get_role_upd_response,
+)
 from schemas.role import RoleCreate, RoleRead, RoleUpdate
 from services.helpers import PermissionChecker
 from services.role import NoResult, RoleServiceExc
@@ -25,6 +32,7 @@ router = APIRouter(
     status_code=status.HTTP_200_OK,
     summary="Role info",
     description="Role info endpoint",
+    responses=get_role_info_response(),
 )
 async def role_info(
     role_id: UUID, role_service: RoleService = Depends(get_role_service)
@@ -40,6 +48,7 @@ async def role_info(
     status_code=status.HTTP_201_CREATED,
     summary="Role creation",
     description="Role creation endpoint",
+    responses=get_role_create_response(),
 )
 async def create_role(
     role: RoleCreate, role_service: RoleService = Depends(get_role_service)
@@ -61,6 +70,7 @@ async def create_role(
     status_code=status.HTTP_200_OK,
     summary="Role update",
     description="Role update endpoint",
+    responses=get_role_upd_response(),
 )
 async def update_role(
     role_id: UUID,
@@ -85,6 +95,7 @@ async def update_role(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Role deletion",
     description="Role deletion endpoint",
+    responses=get_role_del_response(),
 )
 async def delete_role(
     role_id: UUID, role_service: RoleService = Depends(get_role_service)
@@ -117,6 +128,7 @@ async def list_roles(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Assign roles to user",
     description="Assign roles to user",
+    responses=get_role_assign_response(),
 )
 async def assign_role(
     role_id: UUID,
@@ -137,6 +149,7 @@ async def assign_role(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Revoke roles from user",
     description="Revoke roles from user",
+    responses=get_role_assign_response(),
 )
 async def revoke_role(
     role_id: UUID,

@@ -1,18 +1,19 @@
 import logging
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from core.config import settings
 from db.casher import AbstractCache, get_cacher
+from exceptions.errors import PasswordOrLoginExc, UnauthorizedExc
 from models.session import SessionHistoryChoices
 from models.user import User
 from schemas.auth import UserLogin, UserLoginResponse
 from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth import IAuthRepository
 from services.auth.auth_repository import get_repository
-from services.role.role_service import RoleService
+
 from services.user.user_service import UserService, get_user_service
 from services.utils import decode_jwt_token, generate_new_tokens
 
@@ -81,9 +82,7 @@ class AuthService:
         self.cacher = cacher
         self.user_service = user_service
 
-    async def signup_user(
-        self, user_create: UserCreate, role_service: RoleService
-    ) -> UserRead:
+    async def signup_user(self, user_create: UserCreate) -> UserRead:
         """
         Регистрация пользователя.
         """
@@ -92,24 +91,14 @@ class AuthService:
 
         password = user_create_dict.pop("password")
 
-        if len(password) < 8:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password length must be 8 or more characters",
-            )
+        if len(password) < 8 or len(user_create_dict["login"]) < 3:
+            raise PasswordOrLoginExc()
 
         user_create_dict["password_hash"] = generate_password_hash(password)
 
-        try:
-            created_user = await self.repository.create_user(
-                User(**user_create_dict)
-            )
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Can't create user {user_create.login}",
-            )
-
+        created_user = await self.repository.create_user(
+            User(**user_create_dict)
+        )
         return created_user
 
     async def login_user(
@@ -124,17 +113,11 @@ class AuthService:
 
         if not user:
             logger.error("User %s not found", user_login.login)
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid login or password",
-            )
+            raise UnauthorizedExc("Invalid login or password")
 
         if not check_password_hash(user.password_hash, user_login.password):
             logger.error("Password is incorrect")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid login or password",
-            )
+            raise UnauthorizedExc("Invalid login or password")
 
         (
             access_token_encoded_jwt,
@@ -196,10 +179,7 @@ class AuthService:
         )
         if not check:
             logger.error("Refresh token is invalid")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token is invalid",
-            )
+            raise UnauthorizedExc("Refresh token is invalid")
 
         await self.repository.delete_active_session(user_id, user_agent)
 
@@ -236,16 +216,10 @@ class AuthService:
         Смена пароля пользователю.
         """
         if not user_update.password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="New password is empty!",
-            )
+            raise PasswordOrLoginExc()
 
         if len(user_update.password) < 8:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password length must be 8 or more characters",
-            )
+            raise PasswordOrLoginExc()
 
         new_password_hash = generate_password_hash(user_update.password)
 

@@ -1,25 +1,18 @@
 import logging
 from typing import Annotated
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    Header,
-    HTTPException,
-    Request,
-    Response,
-    status,
-)
+from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
 from pydantic import BaseModel
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.casher import AbstractCache, get_cacher
-from db.postrges_db.psql import get_db
+from responses.auth_responses import (
+    get_change_psw_response,
+    get_login_response,
+    get_signup_response,
+    get_token_refr_response,
+)
 from schemas.auth import UserLogin, UserLoginResponse
 from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth.auth_service import AuthService, get_auth_service
-from services.role.role_service import RoleService, get_role_service
 from services.utils import (
     get_user_id_from_access_token,
     get_user_id_from_refresh_token,
@@ -30,49 +23,27 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.get(
-    "/",
-    status_code=status.HTTP_200_OK,
-    response_model=BaseModel,
-    summary="Temporary endpont for test",
-    description="Temporary endpont for test",
-)
-async def auth(
-    db: AsyncSession = Depends(get_db),
-    cacher: AbstractCache = Depends(get_cacher),
-):
-    try:
-        result = await db.execute(text("SELECT 1"))
-        await cacher.set("Try", "probe", 180)
-        data = await cacher.get("Try")
-        value = result.scalar()
-        return {
-            "res": value,
-            "msg": "Database connection is working!",
-            "from_cache": data,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.post(
     "/signup",
     status_code=status.HTTP_201_CREATED,
     response_model=UserRead,
     summary="User registration",
-    description="User registration endpoint",
+    description="User registration endpoint, requires username and password.",
+    responses=get_signup_response(),
 )
 async def signup_user(
-    user_create: UserCreate,
+    user_create: UserCreate = Body(
+        ...,
+        description="login, password, first_name (опц), last_name(опц)",
+    ),
     auth_service: AuthService = Depends(get_auth_service),
-    role_service: RoleService = Depends(get_role_service),
 ) -> UserRead:
     """
     Регистрация нового пользователя
     """
     logger.info("signup user %s", user_create.login)
 
-    result = await auth_service.signup_user(user_create, role_service)
+    result = await auth_service.signup_user(user_create)
 
     return result
 
@@ -83,10 +54,14 @@ async def signup_user(
     response_model=UserLoginResponse,
     summary="User login",
     description="User login endpoint returns access and refresh tokens",
+    responses=get_login_response(),
 )
 async def login_user(
-    user_login: UserLogin,
     response: Response,
+    user_login: UserLogin = Body(
+        ...,
+        description="login, password for sign in app",
+    ),
     user_agent: Annotated[str | None, Header()] = None,
     auth_service: AuthService = Depends(get_auth_service),
 ) -> UserLoginResponse:
@@ -133,6 +108,7 @@ async def social_login() -> BaseModel:
     response_model=UserLoginResponse,
     summary="New access and refresh tokens",
     description="Get new access and refresh tokens",
+    responses=get_token_refr_response(),
 )
 async def refresh_token(
     request: Request,
@@ -209,9 +185,13 @@ async def logout_user(
     status_code=status.HTTP_200_OK,
     summary="User password update",
     description="User password update endpoint",
+    responses=get_change_psw_response(),
 )
 async def password_update(
-    user_update: UserUpdate,
+    user_update: UserUpdate = Body(
+        ...,
+        description="creds for update password",
+    ),
     user_id: str = Depends(get_user_id_from_access_token),
     auth_service: AuthService = Depends(get_auth_service),
 ) -> None:

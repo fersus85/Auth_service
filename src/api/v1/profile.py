@@ -1,9 +1,10 @@
 import logging
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 
+from responses.auth_responses import get_history_response, get_profile_response
 from schemas.session import HistoryRead
 from schemas.user import UserRead
 from services.user.user_service import UserService, get_user_service
@@ -17,8 +18,10 @@ logger = logging.getLogger(__name__)
 @router.get(
     "/",
     response_model=UserRead,
+    status_code=status.HTTP_200_OK,
     summary="User's profile",
     description="Get user's profile",
+    responses=get_profile_response(),
 )
 async def get_profile(
     user_service: UserService = Depends(get_user_service),
@@ -37,6 +40,7 @@ async def get_profile(
     response_model=List[HistoryRead],
     summary="User's login history",
     description="Get user's login history",
+    responses=get_history_response(),
 )
 async def login_history(
     user_service: UserService = Depends(get_user_service),
