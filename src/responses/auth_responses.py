@@ -1,5 +1,6 @@
 from fastapi import status
 
+from schemas.auth import UserLoginResponse
 from schemas.user import UserRead
 
 
@@ -29,7 +30,7 @@ def get_login_response():
     resp = {
         status.HTTP_200_OK: {
             "description": "Successfull login",
-            "model": UserRead,
+            "model": UserLoginResponse,
         },
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Invalid login or password",
@@ -38,6 +39,21 @@ def get_login_response():
         status.HTTP_409_CONFLICT: {
             "description": "Session already exists",
             **get_content("Record already exists"),
+        },
+    }
+    return resp
+
+
+def get_token_refr_response():
+    resp = {
+        status.HTTP_200_OK: {
+            "description": "Get new access and refresh tokens",
+            "model": UserLoginResponse,
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Invalid token",
+            **get_content("Token is invalid"),
+            **get_content("Token expired"),
         },
     }
     return resp

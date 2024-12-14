@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, Request, status
 
 from core.config import settings
 from db.casher import AbstractCache, get_cacher
+from exceptions.errors import UnauthorizedExc
 
 
 async def decode_jwt_token(encoded_jwt_token: str):
@@ -18,7 +19,6 @@ async def decode_jwt_token(encoded_jwt_token: str):
 
 
 async def generate_new_tokens(user_id: UUID):
-
     now = datetime.now()
     expire_for_access_token = now + timedelta(
         minutes=settings.JWT_TOKEN_EXPIRE_TIME_M
@@ -55,14 +55,10 @@ async def generate_new_tokens(user_id: UUID):
 
 
 def get_access_token_from_cookies(request: Request):
-
     token = request.cookies.get("access_token")
 
     if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Access token not found",
-        )
+        raise UnauthorizedExc("Access token not found")
 
     return token
 
@@ -70,7 +66,6 @@ def get_access_token_from_cookies(request: Request):
 async def get_user_id_from_access_token(
     access_token: str = Depends(get_access_token_from_cookies),
 ):
-
     try:
         payload = jwt.decode(
             access_token,
@@ -78,40 +73,27 @@ async def get_user_id_from_access_token(
             algorithms=settings.JWT_TOKEN_ALGORITHM,
         )
     except jwt.InvalidTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token is invalid.",
-        )
+        raise UnauthorizedExc("Token is invalid")
 
     expire = payload.get("exp")
     expire_time = datetime.fromtimestamp(int(expire))
     if (not expire) or (expire_time < datetime.now()):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token is expired.",
-        )
+        raise UnauthorizedExc("Token is expired")
 
     user_id = payload.get("user_id")
     if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User ID not found.",
-        )
+        raise UnauthorizedExc("User ID not found")
 
     token_id = payload.get("jti")
     cacher: AbstractCache = await get_cacher()
     token_is_in_blacklist = await cacher.get(f"blacklist:{token_id}")
     if token_is_in_blacklist:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token is in blacklist.",
-        )
+        raise UnauthorizedExc("Token is in blacklist")
 
     return user_id
 
 
 def get_refresh_token_from_cookies(request: Request):
-
     token = request.cookies.get("refresh_token")
 
     if not token:
@@ -126,7 +108,6 @@ def get_refresh_token_from_cookies(request: Request):
 async def get_user_id_from_refresh_token(
     refresh_token: str = Depends(get_refresh_token_from_cookies),
 ):
-
     try:
         payload = jwt.decode(
             refresh_token,
@@ -136,14 +117,14 @@ async def get_user_id_from_refresh_token(
     except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Токен не валидный!",
+            detail="Refresh token is invalid",
         )
 
     expire = payload.get("exp")
     expire_time = datetime.fromtimestamp(int(expire))
     if (not expire) or (expire_time < datetime.now()):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Токен истек"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
         )
 
     user_id = payload.get("user_id")

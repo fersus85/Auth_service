@@ -172,10 +172,7 @@ class AuthService:
         )
         if not check:
             logger.error("Refresh token is invalid")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token is invalid",
-            )
+            raise UnauthorizedExc("Refresh token is invalid")
 
         await self.repository.delete_active_session(user_id, user_agent)
 
