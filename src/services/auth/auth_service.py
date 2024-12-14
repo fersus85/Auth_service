@@ -6,7 +6,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from core.config import settings
 from db.casher import AbstractCache, get_cacher
-from exceptions.errors import PasswordOrLoginExc
+from exceptions.errors import PasswordOrLoginExc, UnauthorizedExc
 from models.session import SessionHistoryChoices
 from models.user import User
 from schemas.auth import UserLogin, UserLoginResponse
@@ -106,17 +106,11 @@ class AuthService:
 
         if not user:
             logger.error("User %s not found", user_login.login)
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid login or password",
-            )
+            raise UnauthorizedExc("Invalid login or password")
 
         if not check_password_hash(user.password_hash, user_login.password):
             logger.error("Password is incorrect")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid login or password",
-            )
+            raise UnauthorizedExc("Invalid login or password")
 
         (
             access_token_encoded_jwt,

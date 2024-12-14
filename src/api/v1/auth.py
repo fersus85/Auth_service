@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
 from pydantic import BaseModel
 
-from responses.auth_responses import get_signup_response
+from responses.auth_responses import get_login_response, get_signup_response
 from schemas.auth import UserLogin, UserLoginResponse
 from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth.auth_service import AuthService, get_auth_service
@@ -49,10 +49,14 @@ async def signup_user(
     response_model=UserLoginResponse,
     summary="User login",
     description="User login endpoint returns access and refresh tokens",
+    responses=get_login_response(),
 )
 async def login_user(
-    user_login: UserLogin,
     response: Response,
+    user_login: UserLogin = Body(
+        ...,
+        description="login, password for sign in app",
+    ),
     user_agent: Annotated[str | None, Header()] = None,
     auth_service: AuthService = Depends(get_auth_service),
 ) -> UserLoginResponse:

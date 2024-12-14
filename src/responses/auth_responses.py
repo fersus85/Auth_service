@@ -23,3 +23,21 @@ def get_signup_response():
         },
     }
     return resp
+
+
+def get_login_response():
+    resp = {
+        status.HTTP_200_OK: {
+            "description": "Successfull login",
+            "model": UserRead,
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Invalid login or password",
+            **get_content("Invalid login or password"),
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": "Session already exists",
+            **get_content("Record already exists"),
+        },
+    }
+    return resp

@@ -139,8 +139,13 @@ class SQLAlchemyAuthRepository(IAuthRepository):
                 ActiveSession.device_info == user_agent,
             )
         )
-        async with self._transaction_handler("Can't delete session"):
-            await self.db_session.execute(stmt)
+        res = await self.db_session.execute(stmt)
+        if res.rowcount == 0:
+            logger.warning(
+                "Delete operation ActiveSession failed %s %s",
+                user_id,
+                user_agent,
+            )
 
     async def insert_event_to_session_hist(
         self,
