@@ -1,13 +1,13 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, Request, Response, status
+from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
 from pydantic import BaseModel
 
+from responses.auth_responses import get_signup_response
 from schemas.auth import UserLogin, UserLoginResponse
 from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth.auth_service import AuthService, get_auth_service
-from services.role.role_service import RoleService, get_role_service
 from services.utils import (
     get_user_id_from_access_token,
     get_user_id_from_refresh_token,
@@ -23,19 +23,22 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
     status_code=status.HTTP_201_CREATED,
     response_model=UserRead,
     summary="User registration",
-    description="User registration endpoint",
+    description="User registration endpoint, requires username and password.",
+    responses=get_signup_response(),
 )
 async def signup_user(
-    user_create: UserCreate,
+    user_create: UserCreate = Body(
+        ...,
+        description="login, password, first_name (опц), last_name(опц)",
+    ),
     auth_service: AuthService = Depends(get_auth_service),
-    role_service: RoleService = Depends(get_role_service),
 ) -> UserRead:
     """
     Регистрация нового пользователя
     """
     logger.info("signup user %s", user_create.login)
 
-    result = await auth_service.signup_user(user_create, role_service)
+    result = await auth_service.signup_user(user_create)
 
     return result
 

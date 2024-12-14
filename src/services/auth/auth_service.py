@@ -6,13 +6,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from core.config import settings
 from db.casher import AbstractCache, get_cacher
+from exceptions.errors import PasswordOrLoginExc
 from models.session import SessionHistoryChoices
 from models.user import User
 from schemas.auth import UserLogin, UserLoginResponse
 from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth import IAuthRepository
 from services.auth.auth_repository import get_repository
-from services.role.role_service import RoleService
 from services.utils import decode_jwt_token, generate_new_tokens
 
 logger = logging.getLogger(__name__)
@@ -77,9 +77,7 @@ class AuthService:
         self.repository = repository
         self.cacher = cacher
 
-    async def signup_user(
-        self, user_create: UserCreate, role_service: RoleService
-    ) -> UserRead:
+    async def signup_user(self, user_create: UserCreate) -> UserRead:
         """
         Регистрация пользователя.
         """
@@ -88,24 +86,14 @@ class AuthService:
 
         password = user_create_dict.pop("password")
 
-        if len(password) < 8:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password length must be 8 or more characters",
-            )
+        if len(password) < 8 or len(user_create_dict["login"]) < 3:
+            raise PasswordOrLoginExc()
 
         user_create_dict["password_hash"] = generate_password_hash(password)
 
-        try:
-            created_user = await self.repository.create_user(
-                User(**user_create_dict)
-            )
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Can't create user {user_create.login}",
-            )
-
+        created_user = await self.repository.create_user(
+            User(**user_create_dict)
+        )
         return created_user
 
     async def login_user(
@@ -130,9 +118,10 @@ class AuthService:
                 detail="Invalid login or password",
             )
 
-        (access_token_encoded_jwt, refresh_token_encoded_jwt) = (
-            await generate_new_tokens(user.id)
-        )
+        (
+            access_token_encoded_jwt,
+            refresh_token_encoded_jwt,
+        ) = await generate_new_tokens(user.id)
 
         await self.repository.delete_active_session(user.id, user_agent)
 
@@ -198,9 +187,10 @@ class AuthService:
 
         await self._blacklist_access_token(access_token)
 
-        (access_token_encoded_jwt, refresh_token_encoded_jwt) = (
-            await generate_new_tokens(user_id)
-        )
+        (
+            access_token_encoded_jwt,
+            refresh_token_encoded_jwt,
+        ) = await generate_new_tokens(user_id)
 
         await self.repository.insert_new_active_session(
             user_id, user_agent, refresh_token_encoded_jwt

@@ -40,7 +40,7 @@ class SQLAlchemyAuthRepository(IAuthRepository):
         except IntegrityError as e:
             logger.error(e)
             await self.db_session.rollback()
-            raise AuthServiceExc(error_message) from e
+            raise
 
     async def create_user(self, user: User) -> UserRead:
         """
