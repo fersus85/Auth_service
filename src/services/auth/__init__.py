@@ -3,7 +3,7 @@ from typing import Type
 from uuid import UUID
 
 from models import SessionHistoryChoices, User
-from schemas.user import UserCreate, UserRead
+from schemas.user import UserCreate, UserRead, UserRole
 
 
 class IAuthRepository(ABC):
@@ -23,6 +23,13 @@ class IAuthRepository(ABC):
         Находит и возвращает пользователя по его логину.
 
         :param login: Логин пользователя
+        """
+        pass
+
+    @abstractmethod
+    async def get_user_with_roles_by_login(self, login: str) -> UserRole:
+        """
+        Получение данных о пользователе с ролями по логину
         """
         pass
 

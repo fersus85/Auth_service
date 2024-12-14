@@ -6,9 +6,9 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.params import Depends
 
 from schemas.role import RoleCreate, RoleRead, RoleUpdate
+from services.helpers import PermissionChecker
 from services.role import NoResult, RoleServiceExc
 from services.role.role_service import (
-    PermissionChecker,
     RoleService,
     get_role_service,
 )
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/role",
     tags=["Admin"],
-    dependencies=[Depends(PermissionChecker(required=["admin"]))],
+    dependencies=[Depends(PermissionChecker(required={"admin", "superuser"}))],
 )
 
 

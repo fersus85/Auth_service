@@ -106,25 +106,3 @@ def get_role_service(
     Функция для создания экземпляра класса RoleService
     """
     return RoleService(repository=repository)
-
-
-# Ниже заглушки. Без get_current_user не реализовать
-def get_current_user(request: Request) -> UserBase:
-    return None
-
-
-class PermissionChecker:
-    def __init__(self, required: List[str]) -> None:
-        self.required = required
-
-    def __call__(
-        self,
-        user: UserBase = Depends(get_current_user),
-        role_service: RoleService = Depends(get_role_service),
-    ) -> bool:
-        # raise HTTPException(
-        #     status_code=status.HTTP_403_FORBIDDEN,
-        #     detail="Not enough permissions"
-        # )
-
-        return True

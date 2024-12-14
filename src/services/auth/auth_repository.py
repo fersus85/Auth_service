@@ -1,17 +1,18 @@
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Any, Type
+from typing import Any, Type, List
 from uuid import UUID
 
 from fastapi import Depends
 from sqlalchemy import and_, delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from models import Role, User
 from models.session import ActiveSession, SessionHistory, SessionHistoryChoices
-from schemas.user import UserRead
+from schemas.user import UserRead, UserRole
 from services import get_data_access
 from services.auth import IAuthRepository, get_auth_repository_class
 from services.utils import decode_jwt_token
@@ -68,6 +69,36 @@ class SQLAlchemyAuthRepository(IAuthRepository):
         stmt = select(User).where(User.login == login)
         user = await self.db_session.scalar(stmt)
         return user
+
+    async def get_user_with_roles_by_login(self, login: str) -> UserRole:
+        """
+        Получение данных о пользователе с ролями по логину
+        """
+        stmt = (
+            select(User).options(joinedload(User.roles))
+            .where(User.login == login)
+        )
+        user = await self.db_session.scalar(stmt)
+
+        roles = [role.name for role in user.roles]
+
+        return UserRole(
+            id=user.id,
+            login=user.login,
+            password_hash=user.password_hash,
+            roles=roles
+        )
+
+    async def get_user_roles(self, id: str) -> List[str]:
+        """
+        Получение ролей пользователя по логину
+        """
+        stmt = (
+            select(Role.name).join(User.roles).where(User.id == id)
+        )
+        result = await self.db_session.scalars(stmt)
+
+        return result.all()
 
     async def check_refresh_token_in_active_session(
         self, user_id: UUID, user_agent: str, refresh_token: str
