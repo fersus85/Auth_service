@@ -1,6 +1,7 @@
 from fastapi import status
 
 from schemas.auth import UserLoginResponse
+from schemas.session import HistoryRead
 from schemas.user import UserRead, UserUpdate
 
 
@@ -68,6 +69,36 @@ def get_change_psw_response():
         status.HTTP_400_BAD_REQUEST: {
             "description": "Not valid password or login length",
             **get_content("Password length must > 7 and login length > 3"),
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Invalid token",
+            **get_content("Token is invalid"),
+            **get_content("Token expired"),
+        },
+    }
+    return resp
+
+
+def get_profile_response():
+    resp = {
+        status.HTTP_200_OK: {
+            "description": "User's profile",
+            "model": UserRead,
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Invalid token",
+            **get_content("Token is invalid"),
+            **get_content("Token expired"),
+        },
+    }
+    return resp
+
+
+def get_history_response():
+    resp = {
+        status.HTTP_200_OK: {
+            "description": "User's login history",
+            "model": list[HistoryRead],
         },
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Invalid token",

@@ -38,7 +38,7 @@ class SQLAlchemyUserRepository(IUserRepository):
         except IntegrityError as e:
             logger.error(e)
             await self.db_session.rollback()
-            raise UserServiceExc(error_message) from e
+            raise
 
     async def get_profile(self, user_id: str) -> UserRead:
         """
