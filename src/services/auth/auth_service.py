@@ -230,6 +230,17 @@ class AuthService:
 
         return None
 
+    async def verify_role(self, access_token: str, role: str) -> bool:
+        """
+        Проверка наличия роли в пользовательском токене доступа.
+        """
+        access_token_dict: dict = await decode_jwt_token(access_token)
+        token_roles: list = access_token_dict.get("roles", None)
+
+        if role in token_roles:
+            return True
+        return False
+
     async def _blacklist_access_token(self, encoded_jwt_token: str):
         """
         Добавление access_token в чёрный список в Redis.
