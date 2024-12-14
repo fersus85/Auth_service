@@ -67,7 +67,15 @@ async def update_role(
     role_update: RoleUpdate,
     role_service: RoleService = Depends(get_role_service),
 ) -> RoleRead:
-    if (role := await role_service.update(role_id, role_update)) is None:
+    try:
+        role = await role_service.update(role_id, role_update)
+    except RoleServiceExc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to update role",
+        )
+
+    if role is None:
         raise HTTPException(status_code=404, detail="Role not found")
     return role
 

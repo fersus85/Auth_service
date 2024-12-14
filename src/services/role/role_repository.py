@@ -69,11 +69,15 @@ class SQLAlchemyRoleRepository(IRoleRepository):
             Если поля имеют значение None, то их обновлять не нужно
         """
 
+        update_data = {**to_update.model_dump(exclude_unset=True)}
+        if not update_data:
+            raise RoleServiceExc("No fields to update")
+
         stmt = (
             update(Role)
             .returning(Role)
             .where(Role.id == role_id)
-            .values(**to_update.model_dump(exclude_unset=True))
+            .values(update_data)
         )
         async with self._transaction_handler("Can't update role"):
             role = await self.db_session.scalar(stmt)
