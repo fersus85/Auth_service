@@ -5,6 +5,18 @@ import aiohttp
 import pytest_asyncio
 from settings import test_settings
 
+from tests.functional.utils.helpers import (
+    RequestMethods,
+    init_roles,
+    init_users,
+)
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+def setup_before_tests():
+    init_roles()
+    init_users()
+
 
 @pytest_asyncio.fixture(scope="session")
 def event_loop():
@@ -98,5 +110,50 @@ def make_delete_request(
     ) -> aiohttp.ClientResponse:
         url = test_settings.SERVICE_URL + f"/api/v1{router}{endpoint}/{data}"
         return await aiohttp_client.delete(url)
+
+    return inner
+
+
+@pytest_asyncio.fixture(scope="session")
+async def auth_cookies(aiohttp_client: aiohttp.ClientSession):
+    login_data = {
+        "login": test_settings.TEST_USER_LOGIN,
+        "password": test_settings.TEST_USER_PASSWORD,
+    }
+
+    login_url = test_settings.SERVICE_URL + "/api/v1/auth/login"
+    resp = await aiohttp_client.post(login_url, json=login_data)
+    resp.raise_for_status()
+
+    return resp.cookies
+
+
+@pytest_asyncio.fixture(name="make_request")
+def make_request(aiohttp_client: aiohttp.ClientSession, auth_cookies):
+    async def inner(
+        method: RequestMethods,
+        router: str,
+        endpoint: str,
+        params: str = "",
+        data: Any = None,
+    ):
+        url = f"{test_settings.SERVICE_URL}/api/v1{router}{endpoint}/{params}"
+
+        if method == RequestMethods.GET:
+            response = await aiohttp_client.get(url, cookies=auth_cookies)
+        elif method == RequestMethods.POST:
+            response = await aiohttp_client.post(
+                url, json=data, cookies=auth_cookies
+            )
+        elif method == RequestMethods.PUT:
+            response = await aiohttp_client.put(
+                url, json=data, cookies=auth_cookies
+            )
+        elif method == RequestMethods.DELETE:
+            response = await aiohttp_client.delete(url, cookies=auth_cookies)
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
+
+        return response
 
     return inner

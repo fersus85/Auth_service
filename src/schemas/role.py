@@ -32,3 +32,8 @@ class RoleUpdate(RoleBase):
     """
 
     name: str | None = None
+
+
+class RoleAssign(BaseModel):
+    role_id: UUID
+    user_id: UUID

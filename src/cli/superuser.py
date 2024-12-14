@@ -1,13 +1,13 @@
 import logging
 
 import typer
-from su_management import (
+
+from cli.su_management import (
     UserAlreadyExistsError,
     async_launcher,
     init_postgresql_service,
     insert_superuser,
 )
-
 from schemas.user import UserCreate
 
 app = typer.Typer()
