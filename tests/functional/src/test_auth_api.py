@@ -157,8 +157,9 @@ async def test_profile_history(
     body = await response.json()
 
     assert response.status == HTTPStatus.OK
+    assert "results" in body
 
-    assert len(body) == 1
+    assert len(body.get("results")) == 1
 
 
 @pytest.mark.asyncio
@@ -315,4 +316,5 @@ async def test_profile_history_again(
     body = await response.json()
 
     assert response.status == HTTPStatus.OK
-    assert len(body) == 2
+    assert "results" in body
+    assert len(body.get("results")) == 2

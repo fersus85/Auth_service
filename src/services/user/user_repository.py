@@ -1,6 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
-from typing import Any, List, Type
+from typing import Any, Type
 
 from fastapi import Depends
 from sqlalchemy import and_, select
@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import User
 from models.session import SessionHistory, SessionHistoryChoices
-from schemas.session import HistoryRead
+from schemas.session import HistoryBase, HistoryRead
 from schemas.user import UserRead
 from services import get_data_access
 from services.user import IUserRepository, get_user_repository_class
@@ -50,26 +50,46 @@ class SQLAlchemyUserRepository(IUserRepository):
         user = await self.db_session.scalar(stmt)
         return user
 
-    async def get_history(self, user_id: str) -> List[HistoryRead]:
+    async def get_history(
+        self, user_id: str, page_size: int, page_number: int
+    ) -> HistoryRead:
         """
         Получение истории логинов пользователя
 
         :param user_id: ID пользователя
+        :page_size: int Кол-во событий настранице
+        :page_number: int Номер страницы
         """
-        stmt = (
-            select(SessionHistory)
-            .where(
-                and_(
-                    SessionHistory.user_id == user_id,
-                    SessionHistory.name
-                    == SessionHistoryChoices.LOGIN_WITH_PASSWORD,
-                )
+
+        stmt = select(SessionHistory).where(
+            and_(
+                SessionHistory.user_id == user_id,
+                SessionHistory.name
+                == SessionHistoryChoices.LOGIN_WITH_PASSWORD,
             )
-            .order_by(SessionHistory.created_at)
         )
+
+        result_total = await self.db_session.scalars(stmt)
+        sess_hist_total = [
+            HistoryBase.model_validate(row) for row in result_total
+        ]
+        total = len(sess_hist_total)
+
+        stmt = (
+            stmt.order_by(SessionHistory.created_at)
+            .limit(page_size)
+            .offset((page_number - 1) * page_size)
+        )
+
         result = await self.db_session.scalars(stmt)
-        sess_hist = [HistoryRead.model_validate(row) for row in result]
-        return sess_hist
+        sess_hist = [HistoryBase.model_validate(row) for row in result]
+
+        return HistoryRead(
+            total=total,
+            page_number=page_number,
+            page_size=page_size,
+            results=sess_hist,
+        )
 
 
 async def get_repository(
