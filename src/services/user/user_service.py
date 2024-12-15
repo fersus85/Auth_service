@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from fastapi import Depends
 
@@ -30,13 +29,19 @@ class UserService:
         user = await self.repository.get_profile(user_id)
         return user
 
-    async def get_history(self, user_id: str) -> List[HistoryRead]:
+    async def get_history(
+        self, user_id: str, page_size: int, page_number: int
+    ) -> HistoryRead:
         """
         Получение истории логинов пользователя
 
         :param user_id: ID пользователя
+        :page_size: int Кол-во событий настранице
+        :page_number: int Номер страницы
         """
-        sess_hist = await self.repository.get_history(user_id)
+        sess_hist = await self.repository.get_history(
+            user_id, page_size, page_number
+        )
         return sess_hist
 
 

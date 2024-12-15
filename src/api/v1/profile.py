@@ -1,7 +1,6 @@
 import logging
-from typing import List
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from pydantic import BaseModel
 
 from responses.auth_responses import get_history_response, get_profile_response
@@ -37,19 +36,23 @@ async def get_profile(
 
 @router.get(
     "/history",
-    response_model=List[HistoryRead],
+    response_model=HistoryRead,
     summary="User's login history",
     description="Get user's login history",
     responses=get_history_response(),
 )
 async def login_history(
+    page_size: int = Query(
+        10, ge=1, le=50, description="Кол-во событий на странице (1-50)"
+    ),
+    page_number: int = Query(1, ge=1, description="Номер страницы"),
     user_service: UserService = Depends(get_user_service),
     user_id: str = Depends(get_user_id_from_access_token),
-) -> List[HistoryRead]:
+) -> HistoryRead:
     """
     Вывод истории сессий текущего пользователя.
     """
-    result = await user_service.get_history(user_id)
+    result = await user_service.get_history(user_id, page_size, page_number)
     logger.info(f"login_history result = {result}")
     return result
 

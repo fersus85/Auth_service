@@ -1,3 +1,4 @@
+from typing import List
 from datetime import datetime
 from uuid import UUID
 
@@ -13,5 +14,8 @@ class HistoryBase(BaseModel):
         from_attributes = True
 
 
-class HistoryRead(HistoryBase):
-    pass
+class HistoryRead(BaseModel):
+    total: int
+    page_number: int
+    page_size: int
+    results: List[HistoryBase]
