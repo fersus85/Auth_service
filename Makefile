@@ -62,6 +62,14 @@ test:
 test-down:
 	@docker compose --file docker-compose-tests.yml down
 
+# Миграции
+db/migrate:
+	docker compose exec fastapi-auth alembic upgrade head
+
+# Откат миграция
+db/downgrade:
+	docker compose exec fastapi-auth alembic downgrade base
+
 # Вывод справки
 help:
 	@echo "Доступные команды:"
@@ -74,4 +82,6 @@ help:
 	@echo "  make test-up        - Поднятие инфраструктуры тестов"
 	@echo "  make test           - Запуск тестов"
 	@echo "  make test-down      - Остановка инфраструктуры тестов"
+	@echo "  make db/migrate     - Миграция alembic"
+	@echo "  make db/downgrade   - Откат миграции alembic"
 	@echo "  remove-images       - Удаление указанных образов"
