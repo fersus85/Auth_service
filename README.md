@@ -70,7 +70,11 @@ POSTGRES_PORT=5432
 ```bash
   make up
 ```
-5. Создание superuser
+5. Совершите миграцию данных:
+```bash
+  make db/migrate
+```
+6. Создание superuser
 - Подключитесь к контейнеру с приложением:
 ```bash
 docker exec -it auth-service-fastapi-auth-1 bash

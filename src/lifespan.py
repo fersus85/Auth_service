@@ -8,7 +8,6 @@ from init_services import (
     init_casher,
     init_postgresql_service,
     init_repositories,
-    insert_default_roles,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,7 +22,6 @@ async def lifespan(app: FastAPI):
     await init_postgresql_service()
     await init_repositories()
     await init_casher()
-    await insert_default_roles()
 
     logger.info("App ready")
     yield
