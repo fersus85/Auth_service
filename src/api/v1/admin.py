@@ -110,7 +110,7 @@ async def delete_role(
 
 
 @router.get(
-    "s",
+    "/list",
     response_model=List[RoleRead],
     status_code=status.HTTP_200_OK,
     summary="Roles list",
