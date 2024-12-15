@@ -4,6 +4,8 @@ from typing import Any, Callable, Dict
 import pytest
 from aiohttp import ClientResponse
 
+pytestmark = pytest.mark.asyncio
+
 
 @pytest.mark.parametrize(
     "post_body, exp_status, exp_result",
@@ -43,7 +45,6 @@ from aiohttp import ClientResponse
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_signup(
     make_post_request: Callable[[str, str, Dict[str, Any]], ClientResponse],
     post_body: Dict[str, Any],
@@ -94,7 +95,6 @@ async def test_signup(
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_login(
     make_post_request: Callable[[str, str, Dict[str, Any]], ClientResponse],
     post_body: Dict[str, Any],
@@ -123,7 +123,6 @@ async def test_login(
         assert body.get("detail") == exp_result
 
 
-@pytest.mark.asyncio
 async def test_profile(
     make_get_request: Callable[[str, str, str], ClientResponse],
 ) -> None:
@@ -142,7 +141,6 @@ async def test_profile(
     assert "last_name" in body
 
 
-@pytest.mark.asyncio
 async def test_profile_history(
     make_get_request: Callable[[str, str, str], ClientResponse],
 ) -> None:
@@ -162,7 +160,6 @@ async def test_profile_history(
     assert len(body.get("results")) == 1
 
 
-@pytest.mark.asyncio
 async def test_refresh(
     make_post_request: Callable[[str, str, Dict[str, Any]], ClientResponse],
 ) -> None:
@@ -197,7 +194,6 @@ async def test_refresh(
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_password_update(
     make_post_request: Callable[[str, str, Dict[str, Any]], ClientResponse],
     post_body: Dict[str, Any],
@@ -236,7 +232,6 @@ async def test_password_update(
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_logout(
     make_post_request: Callable[[str, str, Dict[str, Any]], ClientResponse],
     post_body: Dict[str, Any],
@@ -276,7 +271,6 @@ async def test_logout(
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_login_new_password(
     make_post_request: Callable[[str, str, Dict[str, Any]], ClientResponse],
     post_body: Dict[str, Any],
@@ -302,7 +296,6 @@ async def test_login_new_password(
         assert body.get("detail") == exp_result
 
 
-@pytest.mark.asyncio
 async def test_profile_history_again(
     make_get_request: Callable[[str, str, str], ClientResponse],
 ) -> None:
