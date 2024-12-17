@@ -7,15 +7,12 @@ from sqlalchemy import delete, insert, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from exceptions.errors import NoResult, RoleServiceExc
 from models import Role
 from models.user import user_roles
 from schemas.role import RoleCreate, RoleFull, RoleUpdate
 from services import get_data_access
-from services.role import (
-    IRoleRepository,
-    get_role_repository_class,
-)
-from exceptions.errors import NoResult, RoleServiceExc
+from services.role import IRoleRepository, get_role_repository_class
 
 
 class SQLAlchemyRoleRepository(IRoleRepository):

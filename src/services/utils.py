@@ -7,9 +7,7 @@ from fastapi import Depends, HTTPException, Request, status
 
 from core.config import settings
 from db.casher import AbstractCache, get_cacher
-
 from exceptions.errors import UnauthorizedExc
-
 from schemas.auth import AccessJWT
 
 

@@ -126,10 +126,7 @@ async def test_list_roles(
 ) -> None:
     query_str = f"?query={query}" if query else ""
     response = await make_request(
-        RequestMethods.GET,
-        "/role",
-        "/list",
-        query_str
+        RequestMethods.GET, "/role", "/list", query_str
     )
     body = await response.json()
 
