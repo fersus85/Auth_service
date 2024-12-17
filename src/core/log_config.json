@@ -1,0 +1,35 @@
+{
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+      "simple": {
+        "format": "%(asctime)s %(module)-16s:%(lineno)s %(levelname)-10s %(message)s",
+        "datefmt": "[%Y-%m-%d %H:%M:%S%z]"
+      }
+    },
+  "handlers": {
+    "stderr": {
+      "class": "logging.StreamHandler",
+      "level": "INFO",
+      "stream": "ext://sys.stderr",
+      "formatter": "simple"
+      },
+    "file": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "level": "DEBUG",
+      "formatter": "simple",
+      "filename": "../logs/auth.log",
+      "maxBytes": 100000,
+      "backupCount": 3
+    }
+    },
+  "loggers": {
+    "root": {
+        "level": "DEBUG",
+        "handlers": [
+          "stderr",
+          "file"
+        ]
+      }
+    }
+  }
