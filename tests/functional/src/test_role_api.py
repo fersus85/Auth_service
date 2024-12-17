@@ -125,7 +125,12 @@ async def test_list_roles(
     exp_result: List[Dict[str, Any]],
 ) -> None:
     query_str = f"?query={query}" if query else ""
-    response = await make_request(RequestMethods.GET, "/role", "s", query_str)
+    response = await make_request(
+        RequestMethods.GET,
+        "/role",
+        "/list",
+        query_str
+    )
     body = await response.json()
 
     assert response.status == exp_status
@@ -153,8 +158,8 @@ async def test_list_roles(
         ),
         pytest.param(
             {"name": "admin"},
-            HTTPStatus.CONFLICT,
-            "Role with this name already exists",
+            HTTPStatus.BAD_REQUEST,
+            "Can't create new role",
             id="duplicate role creation",
         ),
     ],
@@ -209,7 +214,7 @@ async def test_create_role(
             "bef8c6fd-989b-4bb3-848a-89414eadc38f",
             {"incorrect": "test_upd"},
             HTTPStatus.BAD_REQUEST,
-            "Failed to update role",
+            "No fields to update",
             id="incorrect update fields",
         ),
     ],
@@ -249,14 +254,14 @@ async def test_update_role(
             "11111111-b076-4cda-8851-aa056e96725f",
             "afa6b9a3-5db1-4c44-b467-137394c2b167",
             HTTPStatus.BAD_REQUEST,
-            "Failed to assign role to the user",
+            "Can't assign role",
             id="non-exist role",
         ),
         pytest.param(
             "ab1d025b-0e33-42e2-bba8-cf7125044263",
             "11111111-b076-4cda-8851-aa056e96725f",
             HTTPStatus.BAD_REQUEST,
-            "Failed to assign role to the user",
+            "Can't assign role",
             id="non-exist user",
         ),
     ],
@@ -300,14 +305,14 @@ async def test_assign_role(
             "11111111-b076-4cda-8851-aa056e96725f",
             "afa6b9a3-5db1-4c44-b467-137394c2b167",
             HTTPStatus.BAD_REQUEST,
-            "No role",
+            "The requested resource was not found",
             id="non-exist role",
         ),
         pytest.param(
             "ab1d025b-0e33-42e2-bba8-cf7125044263",
             "11111111-b076-4cda-8851-aa056e96725f",
             HTTPStatus.BAD_REQUEST,
-            "No role",
+            "The requested resource was not found",
             id="non-exist user",
         ),
     ],
@@ -349,7 +354,7 @@ async def test_revoke_role(
         pytest.param(
             "11111111-b076-4cda-8851-aa056e96725f",
             HTTPStatus.BAD_REQUEST,
-            "No role with id 11111111-b076-4cda-8851-aa056e96725f found",
+            "The requested resource was not found",
             id="non-exist role",
         ),
     ],

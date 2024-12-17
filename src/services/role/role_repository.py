@@ -13,10 +13,9 @@ from schemas.role import RoleCreate, RoleFull, RoleUpdate
 from services import get_data_access
 from services.role import (
     IRoleRepository,
-    NoResult,
-    RoleServiceExc,
     get_role_repository_class,
 )
+from exceptions.errors import NoResult, RoleServiceExc
 
 
 class SQLAlchemyRoleRepository(IRoleRepository):

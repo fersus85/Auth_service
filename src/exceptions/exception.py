@@ -9,6 +9,8 @@ from exceptions.exc_handlers import (
     no_result_error_handler,
     password_or_login_error_handler,
     unauthorized_error_handler,
+    no_result_error_400_handler,
+    role_service_error_handler
 )
 
 exception_handlers: dict[
@@ -18,7 +20,7 @@ exception_handlers: dict[
     sqlalchemy.exc.IntegrityError: integrity_error_handler,
     sqlalchemy.exc.NoResultFound: no_result_error_handler,
     errors.PasswordOrLoginExc: password_or_login_error_handler,
-    errors.UnauthorizedExc: unauthorized_error_handler
-    # jose_exceptions.ExpiredSignatureError: expired_token_error_handler,
-    # jose_exceptions.JWTError: invalid_token_error_handler,
+    errors.UnauthorizedExc: unauthorized_error_handler,
+    errors.NoResult: no_result_error_400_handler,
+    errors.RoleServiceExc: role_service_error_handler
 }
