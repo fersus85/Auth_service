@@ -1,0 +1,52 @@
+name: Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and run Docker Compose
+        run: |
+          docker compose --file docker-compose-tests.yml up -d --build
+
+      - name: Wait for database (with timeout)
+        run: |
+          timeout 60s bash -c 'until docker-compose --file docker-compose-tests.yml exec db pg_isready -U "${{ secrets.POSTGRES_USER }}"; do sleep 5; echo "Waiting for database..."; done' || exit 1
+
+      - name: Migration
+        run: |
+          docker compose --file docker-compose-tests.yml exec fastapi-auth alembic upgrade head
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install deps
+        run: |
+          pip install -r tests/functional/requirements.txt
+
+      - name: Export PYTHONPATH
+        run: echo "PYTHONPATH=." >> $GITHUB_ENV
+
+      - name: Run tests
+        run: |
+          pytest tests/functional/src/
+
+      - name: Stop and remove containers
+        run: |
+          docker compose --file docker-compose-tests.yml down
