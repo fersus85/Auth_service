@@ -6,6 +6,8 @@ class TestSettings(BaseSettings):
         env_file=".env", env_ignore_empty=True, extra="ignore"
     )
     SERVICE_URL: str = "http://localhost:8000"
+    TEST_USER_LOGIN: str
+    TEST_USER_PASSWORD: str
 
 
 test_settings = TestSettings()

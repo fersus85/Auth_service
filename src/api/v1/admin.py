@@ -12,7 +12,7 @@ from responses.admin_responses import (
     get_role_info_response,
     get_role_upd_response,
 )
-from schemas.role import RoleCreate, RoleRead, RoleUpdate
+from schemas.role import RoleAssign, RoleCreate, RoleRead, RoleUpdate
 from services.helpers import PermissionChecker
 from services.role import NoResult, RoleServiceExc
 from services.role.role_service import RoleService, get_role_service
@@ -131,12 +131,11 @@ async def list_roles(
     responses=get_role_assign_response(),
 )
 async def assign_role(
-    role_id: UUID,
-    user_id: UUID,
+    body: RoleAssign,
     role_service: RoleService = Depends(get_role_service),
 ) -> None:
     try:
-        return await role_service.assign(role_id, user_id)
+        return await role_service.assign(body.role_id, body.user_id)
     except RoleServiceExc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -152,14 +151,13 @@ async def assign_role(
     responses=get_role_assign_response(),
 )
 async def revoke_role(
-    role_id: UUID,
-    user_id: UUID,
+    body: RoleAssign,
     role_service: RoleService = Depends(get_role_service),
 ) -> None:
     try:
-        return await role_service.revoke(role_id, user_id)
+        return await role_service.revoke(body.role_id, body.user_id)
     except NoResult:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No role {role_id} assigned to user {user_id}",
+            detail=f"No role {body.role_id} assigned to user {body.user_id}",
         )
