@@ -1,13 +1,14 @@
 from enum import Enum
 from uuid import UUID
 
+from settings import test_settings
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.security import generate_password_hash
 
-from cli.su_management import async_launcher, init_postgresql_service
+from cli.su_management import async_launcher
+from db.postrges_db.psql import PostgresService
 from models.user import Role, User
-from tests.functional.settings import test_settings
 
 
 class RequestMethods(Enum):
@@ -15,6 +16,17 @@ class RequestMethods(Enum):
     POST = "POST"
     PUT = "PUT"
     DELETE = "DELETE"
+
+
+async def init_postgresql_service():
+    """Возвращает новый экземпляр PostgresService"""
+    return PostgresService(
+        url=str(test_settings.DB_URI),
+        echo=test_settings.ECHO,
+        echo_pool=test_settings.ECHO_POOL,
+        pool_size=test_settings.POOL_SIZE,
+        max_overflow=test_settings.MAX_OVERFLOW,
+    )
 
 
 @async_launcher

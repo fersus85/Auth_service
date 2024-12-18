@@ -4,12 +4,7 @@ from typing import Any, AsyncGenerator, Callable, Dict
 import aiohttp
 import pytest_asyncio
 from settings import test_settings
-
-from tests.functional.utils.helpers import (
-    RequestMethods,
-    init_roles,
-    init_users,
-)
+from utils.helpers import RequestMethods, init_roles, init_users
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)

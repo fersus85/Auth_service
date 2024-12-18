@@ -3,8 +3,7 @@ from typing import Any, Callable, Dict, List
 
 import pytest
 from aiohttp import ClientResponse
-
-from tests.functional.utils.helpers import RequestMethods
+from utils.helpers import RequestMethods
 
 
 @pytest.mark.parametrize(
