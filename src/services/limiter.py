@@ -1,13 +1,12 @@
 import datetime
 
-from redis.asyncio import Redis
-
 from core.config import settings
-
-cache = Redis(host=settings.REDIS_HOST)
+from db.redis import Redis, get_redis
 
 
 async def check_limit():
+
+    cache: Redis = await get_redis()
 
     pipe = cache.pipeline()
     now = datetime.datetime.now()
