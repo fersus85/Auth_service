@@ -18,7 +18,8 @@ async def log_stuff(request: Request, call_next):
 async def limiter(request: Request, call_next):
     redis: Redis = await get_redis()
 
-    with RateLimiter(redis) as limiter:
+    async with RateLimiter(redis) as limiter:
+
         limit_result = await limiter.check_limit()
         if limit_result:
             return JSONResponse(

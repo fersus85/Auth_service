@@ -27,8 +27,8 @@ class RateLimiter:
             return True
         return False
 
-    def __enter__(self):
+    async def __aenter__(self):
         return self
 
-    def __exit__(self, type, value, traceback):
+    async def __aexit__(self, type, value, traceback):
         pass
