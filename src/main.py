@@ -1,7 +1,7 @@
 import logging
 
-from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse, ORJSONResponse
+from fastapi import FastAPI
+from fastapi.responses import ORJSONResponse
 
 from api import router as api_router
 from core.config import settings

@@ -2,7 +2,7 @@ import datetime
 import logging
 
 from core.config import settings
-from db.redis import Redis, get_redis
+from db.redis import Redis
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +29,8 @@ class RateLimiter:
             return True
         return False
 
-    def __enter__(self):
+    async def __aenter__(self):
         return self
 
-    def __exit__(self, type, value, traceback):
+    async def __aexit__(self, type, value, traceback):
         pass
