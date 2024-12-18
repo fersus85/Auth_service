@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "AuthService"
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    POSTGRES_HOST: str
+    POSTGRES_HOST: str = "postgres"
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     POOL_SIZE: int = 20
     MAX_OVERFLOW: int = 10
 
-    REDIS_HOST: str = "127.0.0.1"
+    REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
 
     JWT_TOKEN_SECRET_KEY: str

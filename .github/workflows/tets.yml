@@ -13,12 +13,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up environment
+        run: |
+          echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> $GITHUB_ENV
+          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> $GITHUB_ENV
+          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> $GITHUB_ENV
+
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
 
       - name: Build and run Docker Compose
         run: |
-          docker compose --file docker-compose-tests.yml up -d --build
+          docker compose --file docker-compose-ci.yml up -d --build
 
       - name: Wait for database (with timeout)
         run: |
