@@ -33,4 +33,4 @@ class RateLimiter:
         return self
 
     async def __aexit__(self, type, value, traceback):
-        pass
+        await self.redis.close()
