@@ -12,9 +12,8 @@ from responses.admin_responses import (
     get_role_info_response,
     get_role_upd_response,
 )
-from schemas.role import RoleCreate, RoleRead, RoleUpdate
+from schemas.role import RoleAssign, RoleCreate, RoleRead, RoleUpdate
 from services.helpers import PermissionChecker
-from services.role import NoResult, RoleServiceExc
 from services.role.role_service import RoleService, get_role_service
 
 logger = logging.getLogger(__name__)
@@ -53,15 +52,9 @@ async def role_info(
 async def create_role(
     role: RoleCreate, role_service: RoleService = Depends(get_role_service)
 ) -> RoleRead:
-    try:
-        result = await role_service.create(role)
-        logger.info(f"create_role result = {result}")
-        return result
-    except RoleServiceExc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Role with this name already exists",
-        )
+    result = await role_service.create(role)
+    logger.info(f"create_role result = {result}")
+    return result
 
 
 @router.put(
@@ -77,14 +70,7 @@ async def update_role(
     role_update: RoleUpdate,
     role_service: RoleService = Depends(get_role_service),
 ) -> RoleRead:
-    try:
-        role = await role_service.update(role_id, role_update)
-    except RoleServiceExc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to update role",
-        )
-
+    role = await role_service.update(role_id, role_update)
     if role is None:
         raise HTTPException(status_code=404, detail="Role not found")
     return role
@@ -100,17 +86,11 @@ async def update_role(
 async def delete_role(
     role_id: UUID, role_service: RoleService = Depends(get_role_service)
 ) -> None:
-    try:
-        await role_service.delete(role_id)
-    except NoResult:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No role with id {role_id} found",
-        )
+    await role_service.delete(role_id)
 
 
 @router.get(
-    "/list",
+    "/list/",
     response_model=List[RoleRead],
     status_code=status.HTTP_200_OK,
     summary="Roles list",
@@ -131,17 +111,10 @@ async def list_roles(
     responses=get_role_assign_response(),
 )
 async def assign_role(
-    role_id: UUID,
-    user_id: UUID,
+    body: RoleAssign,
     role_service: RoleService = Depends(get_role_service),
 ) -> None:
-    try:
-        return await role_service.assign(role_id, user_id)
-    except RoleServiceExc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to assign role to the user",
-        )
+    return await role_service.assign(body.role_id, body.user_id)
 
 
 @router.post(
@@ -152,14 +125,7 @@ async def assign_role(
     responses=get_role_assign_response(),
 )
 async def revoke_role(
-    role_id: UUID,
-    user_id: UUID,
+    body: RoleAssign,
     role_service: RoleService = Depends(get_role_service),
 ) -> None:
-    try:
-        return await role_service.revoke(role_id, user_id)
-    except NoResult:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No role {role_id} assigned to user {user_id}",
-        )
+    return await role_service.revoke(body.role_id, body.user_id)

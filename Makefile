@@ -56,8 +56,7 @@ test-up:
 # Запуск тестов
 test:
 	@pip install -r tests/functional/requirements.txt >/dev/null
-	@export PYTHONPATH=$(CURDIR)
-	@pytest tests/functional/src/
+	PYTHONPATH=$(CURDIR)/src pytest tests/functional
 
 # Остановка инфраструктуры тестов
 test-down:

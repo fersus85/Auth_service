@@ -13,7 +13,6 @@ from schemas.auth import UserLogin, UserLoginResponse
 from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth import IAuthRepository
 from services.auth.auth_repository import get_repository
-
 from services.user.user_service import UserService, get_user_service
 from services.utils import decode_jwt_token, generate_new_tokens
 
