@@ -5,6 +5,8 @@ import pytest
 from aiohttp import ClientResponse
 from utils.helpers import RequestMethods
 
+pytestmark = pytest.mark.asyncio
+
 
 @pytest.mark.parametrize(
     "role_id, exp_result",
@@ -26,7 +28,6 @@ from utils.helpers import RequestMethods
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_role_info(
     make_request: Callable[
         [RequestMethods, str, str, str, Any], ClientResponse
@@ -114,7 +115,6 @@ async def test_role_info(
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_list_roles(
     make_request: Callable[
         [RequestMethods, str, str, str, Any], ClientResponse
@@ -160,7 +160,6 @@ async def test_list_roles(
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_create_role(
     make_request: Callable[
         [RequestMethods, str, str, str, Any], ClientResponse
@@ -215,7 +214,6 @@ async def test_create_role(
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_update_role(
     make_request: Callable[
         [RequestMethods, str, str, str, Any], ClientResponse
@@ -262,7 +260,6 @@ async def test_update_role(
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_assign_role(
     make_request: Callable[
         [RequestMethods, str, str, str, Any], ClientResponse
@@ -313,7 +310,6 @@ async def test_assign_role(
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_revoke_role(
     make_request: Callable[
         [RequestMethods, str, str, str, Any], ClientResponse
@@ -355,7 +351,6 @@ async def test_revoke_role(
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_delete_role(
     make_request: Callable[
         [RequestMethods, str, str, str, Any], ClientResponse
