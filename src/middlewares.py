@@ -18,12 +18,12 @@ async def log_stuff(request: Request, call_next):
 async def limiter(request: Request, call_next):
     redis: Redis = await get_redis()
 
-    async with RateLimiter(redis) as limiter:
+    limiter = RateLimiter(redis)
 
-        limit_result = await limiter.check_limit()
-        if limit_result:
-            return JSONResponse(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS, content=None
-            )
-        response = await call_next(request)
-        return response
+    limit_result = await limiter.check_limit()
+    if limit_result:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS, content=None
+        )
+    response = await call_next(request)
+    return response
