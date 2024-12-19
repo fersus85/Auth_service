@@ -84,9 +84,17 @@ class SessionHistory(Base):
 
     Отношения:
     - user: Связь с таблицей user (обратное отношение через `session_history`).
+
+    Таблица партиционирована по полю created_at.
+    Партиции создаются для каждого месяца.
     """
 
     __tablename__ = "session_history"
+
+    __table_args__ = {
+        "schema": "content",
+        "postgresql_partition_by": "RANGE (created_at)",
+    }
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -100,7 +108,7 @@ class SessionHistory(Base):
     expires_at: Mapped[datetime]
     device_info: Mapped[str]
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now()
+        DateTime, primary_key=True, server_default=func.now()
     )
 
     user: Mapped[Optional["User"]] = relationship(

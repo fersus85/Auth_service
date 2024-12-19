@@ -18,7 +18,8 @@ async def insert_roles(session: AsyncSession, roles: list[Role]):
     :param roles: Список с дефолтными ролями
     """
     role_mappings = [
-        {"name": role.name, "description": role.description} for role in roles
+        {"id": role.id, "name": role.name, "description": role.description}
+        for role in roles
     ]
     logger.debug("Inserting roles...")
     await session.execute(insert(Role), role_mappings)

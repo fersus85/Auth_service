@@ -1,8 +1,8 @@
-from typing import List
 from datetime import datetime
+from typing import List
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class HistoryBase(BaseModel):
@@ -10,8 +10,7 @@ class HistoryBase(BaseModel):
     created_at: datetime | None = None
     device_info: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class HistoryRead(BaseModel):
