@@ -1,10 +1,23 @@
 import os
+from enum import Enum, auto
 
 from pydantic import PostgresDsn, computed_field
 from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from models.user import Role
+
+
+class StrEnum(str, Enum):
+    def _generate_next_value_(name, start, count, last_values):
+        return name
+
+
+class UserRoleDefault(StrEnum):
+    SUPERUSER = auto()
+    ADMIN = auto()
+    SUBSCRIBER = auto()
+    USER = auto()
 
 
 class Settings(BaseSettings):
@@ -47,10 +60,16 @@ class Settings(BaseSettings):
     @property
     def DEFAULT_ROLES(self):
         return [
-            Role(name="superuser", description="Может всё"),
-            Role(name="admin", description="Администратор"),
-            Role(name="subscriber", description="Пользователь с допами"),
-            Role(name="user", description="Зарегестрированный пользователь"),
+            Role(name=UserRoleDefault.SUPERUSER, description="Может всё"),
+            Role(name=UserRoleDefault.ADMIN, description="Администратор"),
+            Role(
+                name=UserRoleDefault.SUBSCRIBER,
+                description="Пользователь с допами",
+            ),
+            Role(
+                name=UserRoleDefault.USER,
+                description="Зарегестрированный пользователь",
+            ),
         ]
 
 
