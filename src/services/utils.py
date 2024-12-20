@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict
 from uuid import UUID, uuid4
 
 import jwt
@@ -7,9 +7,7 @@ from fastapi import Depends, HTTPException, Request, status
 
 from core.config import settings
 from db.casher import AbstractCache, get_cacher
-
 from exceptions.errors import UnauthorizedExc
-
 from schemas.auth import AccessJWT
 
 
@@ -22,7 +20,7 @@ async def decode_jwt_token(encoded_jwt_token: str):
     return token_dict
 
 
-async def generate_new_tokens(user_id: UUID, roles: List[str]):
+async def generate_new_tokens(user_id: UUID, role: str):
     now = datetime.now()
     expire_for_access_token = now + timedelta(
         minutes=settings.JWT_TOKEN_EXPIRE_TIME_M
@@ -34,7 +32,7 @@ async def generate_new_tokens(user_id: UUID, roles: List[str]):
     access_token_dict = {
         "user_id": str(user_id),
         "iat": now.timestamp(),
-        "roles": roles,
+        "role": role,
     }
     refresh_token_dict = access_token_dict.copy()
 
@@ -168,7 +166,7 @@ async def get_params_from_refresh_token(
         user_id=UUID(payload["user_id"]),
         iat=payload["iat"],
         exp=payload["exp"],
-        roles=payload["roles"],
+        role=payload["role"],
     )
     return decoded
 
