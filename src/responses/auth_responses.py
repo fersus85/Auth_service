@@ -1,6 +1,6 @@
 from fastapi import status
 
-from schemas.auth import UserLoginResponse
+from schemas.auth import UserLoginResponse, UserTokenResponse
 from schemas.session import HistoryRead
 from schemas.user import UserRead, UserUpdate
 
@@ -49,7 +49,7 @@ def get_token_refr_response():
     resp = {
         status.HTTP_200_OK: {
             "description": "Get new access and refresh tokens",
-            "model": UserLoginResponse,
+            "model": UserTokenResponse,
         },
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Invalid token",
