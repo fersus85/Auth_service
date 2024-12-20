@@ -9,11 +9,10 @@ from db.casher import AbstractCache, get_cacher
 from exceptions.errors import PasswordOrLoginExc, UnauthorizedExc
 from models.session import SessionHistoryChoices
 from models.user import User
-from schemas.auth import UserLogin, UserLoginResponse
-from schemas.user import UserCreate, UserRead, UserUpdate
+from schemas.auth import UserLogin, UserLoginResponse, UserTokenResponse
+from schemas.user import UserCreate, UserRead, UserRole, UserUpdate
 from services.auth import IAuthRepository
 from services.auth.auth_repository import get_repository
-
 from services.user.user_service import UserService, get_user_service
 from services.utils import decode_jwt_token, generate_new_tokens
 
@@ -43,7 +42,7 @@ class AuthService:
             Регистрирует нового пользователя и назначает роли.
 
         login_user(user_login: UserLogin, user_agent: str)
-            -> UserLoginResponse:
+            -> tuple[UserRole, UserTokenResponse:
             Аутентифицирует пользователя и возвращает токены доступа
                 и обновления.
 
@@ -61,7 +60,7 @@ class AuthService:
             user_agent: str,
             access_token: str,
             refresh_token: str
-        ) -> UserLoginResponse:
+        ) -> UserTokenResponse:
             Выдает новые токены доступа и обновления для пользователя.
 
         password_update(user_id: str, user_update: UserUpdate) -> None:
@@ -103,7 +102,7 @@ class AuthService:
 
     async def login_user(
         self, user_login: UserLogin, user_agent: str
-    ) -> UserLoginResponse:
+    ) -> tuple[UserRole, UserTokenResponse]:
         """
         Аутентификация пользователя логином и паролем.
         """
@@ -122,7 +121,7 @@ class AuthService:
         (
             access_token_encoded_jwt,
             refresh_token_encoded_jwt,
-        ) = await generate_new_tokens(user.id, user.roles)
+        ) = await generate_new_tokens(user.id, user.role)
 
         await self.repository.delete_active_session(user.id, user_agent)
 
@@ -136,9 +135,17 @@ class AuthService:
             SessionHistoryChoices.LOGIN_WITH_PASSWORD,
         )
 
-        return UserLoginResponse(
-            access_token=access_token_encoded_jwt,
-            refresh_token=refresh_token_encoded_jwt,
+        return (
+            UserLoginResponse(
+                id=user.id,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                role=user.role,
+            ),
+            UserTokenResponse(
+                access_token=access_token_encoded_jwt,
+                refresh_token=refresh_token_encoded_jwt,
+            ),
         )
 
     async def logout_user(
@@ -170,7 +177,7 @@ class AuthService:
         user_agent: str,
         access_token: str,
         refresh_token: str,
-    ) -> UserLoginResponse:
+    ) -> UserTokenResponse:
         """
         Выдача новых токенов пользователю.
         """
@@ -185,11 +192,11 @@ class AuthService:
 
         await self._blacklist_access_token(access_token)
 
-        user_roles = await self.repository.get_user_roles(user_id)
+        user_role = await self.repository.get_user_roles(user_id)
         (
             access_token_encoded_jwt,
             refresh_token_encoded_jwt,
-        ) = await generate_new_tokens(user_id, user_roles)
+        ) = await generate_new_tokens(user_id, user_role)
 
         await self.repository.insert_new_active_session(
             user_id, user_agent, refresh_token_encoded_jwt
@@ -202,7 +209,7 @@ class AuthService:
             SessionHistoryChoices.REFRESH_TOKEN_UPDATE,
         )
 
-        return UserLoginResponse(
+        return UserTokenResponse(
             access_token=access_token_encoded_jwt,
             refresh_token=refresh_token_encoded_jwt,
         )
