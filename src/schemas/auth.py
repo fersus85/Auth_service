@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -18,7 +17,7 @@ class ProtoJWT(BaseModel):
     exp: float = Field(
         ..., description="Время истечения токена в формате epoch"
     )
-    roles: List[str] = Field(..., description="Список связанных ролей")
+    role: str = Field(..., description="Связанная роль")
 
     @property
     def issued_at(self) -> datetime:
@@ -54,5 +53,12 @@ class UserLogin(BaseModel):
 
 
 class UserLoginResponse(BaseModel):
+    id: UUID
+    first_name: str
+    last_name: str
+    role: str
+
+
+class UserTokenResponse(BaseModel):
     access_token: str
     refresh_token: str
