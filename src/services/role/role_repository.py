@@ -3,7 +3,7 @@ from typing import Any, List, Type
 from uuid import UUID
 
 from fastapi import Depends
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -98,7 +98,11 @@ class SQLAlchemyRoleRepository(IRoleRepository):
         """
         Назначает роль пользователю
         """
-        stmt = insert(user_roles).values(role_id=role_id, user_id=user_id)
+        stmt = (
+            update(user_roles)
+            .where(user_roles.c.user_id == user_id)
+            .values(role_id=role_id)
+        )
         async with self._transaction_handler("Can't assign role"):
             await self.db_session.execute(stmt)
 
