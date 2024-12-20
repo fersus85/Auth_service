@@ -242,9 +242,9 @@ class AuthService:
         Проверка наличия роли в пользовательском токене доступа.
         """
         access_token_dict: dict = await decode_jwt_token(access_token)
-        token_roles: list = access_token_dict.get("roles", None)
+        token_role: str = access_token_dict.get("role", None)
 
-        if role in token_roles:
+        if role == token_role:
             return True
         return False
 
