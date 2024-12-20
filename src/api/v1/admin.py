@@ -159,14 +159,7 @@ async def assign_role(
     responses=get_role_assign_response(),
 )
 async def revoke_role(
-    role_id: UUID,
     user_id: UUID,
     role_service: RoleService = Depends(get_role_service),
 ) -> None:
-    try:
-        return await role_service.revoke(role_id, user_id)
-    except NoResult:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No role {role_id} assigned to user {user_id}",
-        )
+    return await role_service.revoke(user_id)

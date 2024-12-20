@@ -74,14 +74,14 @@ class RoleService:
 
         await self.repository.assign(role_id, user_id)
 
-    async def revoke(self, role_id: UUID, user_id: UUID) -> None:
+    async def revoke(self, user_id: UUID) -> None:
         """
         Отзывает роль у пользователя
 
         :raise NoResult: Если не удалось отозвать роль у пользователя
         """
 
-        await self.repository.revoke(role_id, user_id)
+        await self.repository.revoke(user_id)
 
     async def list_roles(
         self, name_filter: str | None = None
