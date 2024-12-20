@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from werkzeug.security import generate_password_hash
 
-from core.config import settings
+from core.config import UserRoleDefault, settings
 from db.postrges_db.psql import PostgresService
 from models.user import Role, User
 from schemas.user import UserCreate
@@ -53,7 +53,7 @@ async def insert_superuser(session: AsyncSession, creds: UserCreate) -> User:
     Raises:
         UserAlreadyExistsError: Если не удалось создаьть запись
     """
-    ROLE: str = "superuser"
+    ROLE: str = UserRoleDefault.SUPERUSER
     user_create_dict = creds.model_dump()
 
     password = user_create_dict.pop("password")
