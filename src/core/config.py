@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     JWT_TOKEN_ALGORITHM: str = "HS256"
     JWT_TOKEN_EXPIRE_TIME_M: int = 15
 
+    REQUEST_LIMIT_PER_SECOND: int = 10
+
     @computed_field
     @property
     def DB_URI(self) -> PostgresDsn:
