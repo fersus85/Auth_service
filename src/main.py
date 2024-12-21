@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
 from api import router as api_router
@@ -8,6 +8,7 @@ from core.config import settings
 from core.log_config import setup_logging
 from exceptions.exception import exception_handlers
 from lifespan import lifespan
+from middlewares import limiter, log_stuff
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -25,11 +26,8 @@ app = FastAPI(
 )
 
 
-@app.middleware("http")
-async def log_stuff(request: Request, call_next):
-    response = await call_next(request)
-    logger.info(f"{response.status_code} {request.method} {request.url}")
-    return response
+app.middleware("http")(log_stuff)
+app.middleware("http")(limiter)
 
 
 app.include_router(api_router, prefix="/api")
