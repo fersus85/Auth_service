@@ -8,16 +8,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import UserRoleDefault
+from exceptions.errors import NoResult, RoleServiceExc
 from models import Role
 from models.user import user_roles
 from schemas.role import RoleCreate, RoleFull, RoleUpdate
 from services import get_data_access
-from services.role import (
-    IRoleRepository,
-    NoResult,
-    RoleServiceExc,
-    get_role_repository_class,
-)
+from services.role import IRoleRepository, get_role_repository_class
 
 
 class SQLAlchemyRoleRepository(IRoleRepository):

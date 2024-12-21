@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel
 
 from responses.auth_responses import get_history_response, get_profile_response

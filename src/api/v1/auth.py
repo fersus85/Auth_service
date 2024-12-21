@@ -219,6 +219,7 @@ async def password_update(
 
 @router.post(
     "/verify",
+    response_model=BaseModel,
     status_code=status.HTTP_200_OK,
     summary="User permissions verify",
     description="User permissions verify endpoint",

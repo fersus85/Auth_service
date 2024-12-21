@@ -52,3 +52,29 @@ async def unauthorized_error_handler(
         status_code=status.HTTP_401_UNAUTHORIZED,
         content={"detail": exc.detail},
     )
+
+
+async def no_result_error_400_handler(
+    _: Request,
+    __: Exception,
+) -> Response:
+    """No result error handler"""
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "detail": "The requested resource was not found",
+        },
+    )
+
+
+async def role_service_error_handler(
+    _: Request,
+    exc: Exception,
+) -> Response:
+    """Role Service error handler"""
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "detail": str(exc),
+        },
+    )

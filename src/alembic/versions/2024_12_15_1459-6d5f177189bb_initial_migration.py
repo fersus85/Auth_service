@@ -5,6 +5,7 @@ Revises:
 Create Date: 2024-12-15 14:59:24.539277
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -113,8 +114,28 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["user_id"], ["content.user.id"], ondelete="SET NULL"
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", "created_at"),
         schema="content",
+        postgresql_partition_by="RANGE (created_at)",
+    )
+    op.execute(
+        """CREATE TABLE IF NOT EXISTS content.session_history_202412
+        PARTITION OF content.session_history FOR
+        VALUES FROM ('2024-12-01') TO ('2025-01-01');"""
+    )
+    op.execute(
+        """CREATE TABLE IF NOT EXISTS content.session_history_202501
+        PARTITION OF content.session_history FOR
+        VALUES FROM ('2025-01-01') TO ('2025-02-01');"""
+    )
+    op.execute(
+        """CREATE TABLE IF NOT EXISTS content.session_history_202502
+        PARTITION OF content.session_history FOR
+        VALUES FROM ('2025-02-01') TO ('2025-03-01');"""
+    )
+    op.execute(
+        """CREATE TABLE IF NOT EXISTS content.session_history_DEFAULT
+        PARTITION OF content.session_history DEFAULT;"""
     )
     op.create_index(
         op.f("ix_content_session_history_user_id"),
