@@ -36,7 +36,6 @@ async def log_stuff(request: Request, call_next):
 @app.middleware("http")
 async def limiter(request: Request, call_next):
     limit_result = await check_limit()
-    logger.info(f"limit: {limit_result}")
     if limit_result:
         return JSONResponse(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS, content=None
