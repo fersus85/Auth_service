@@ -3,10 +3,11 @@ from typing import Any, List, Type
 from uuid import UUID
 
 from fastapi import Depends
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.config import UserRoleDefault
 from exceptions.errors import NoResult, RoleServiceExc
 from models import Role
 from models.user import user_roles
@@ -94,23 +95,30 @@ class SQLAlchemyRoleRepository(IRoleRepository):
         """
         Назначает роль пользователю
         """
-        stmt = insert(user_roles).values(role_id=role_id, user_id=user_id)
+        stmt = (
+            update(user_roles)
+            .where(user_roles.c.user_id == user_id)
+            .values(role_id=role_id)
+        )
         async with self._transaction_handler("Can't assign role"):
             await self.db_session.execute(stmt)
 
-    async def revoke(self, role_id: UUID, user_id: UUID) -> None:
+    async def revoke(self, user_id: UUID) -> None:
         """
         Отзывает роль у пользователя
 
         :raise RoleServiceExc: Если не удалось отозвать роль у пользователя
         """
-        stmt = delete(user_roles).where(
-            user_roles.c.role_id == role_id and user_roles.c.user_id == user_id
+        role_stmt = select(Role).where(Role.name == UserRoleDefault.USER)
+        role = await self.db_session.scalar(role_stmt)
+        stmt = (
+            update(user_roles)
+            .where(user_roles.c.user_id == user_id)
+            .values(role_id=role.id)
         )
+
         async with self._transaction_handler("Can't revoke role"):
-            result = await self.db_session.execute(stmt)
-            if result.rowcount == 0:
-                raise NoResult(f"No role {role_id} assigned to user {user_id}")
+            await self.db_session.execute(stmt)
 
     async def list_roles(
         self, name_filter: str | None = None

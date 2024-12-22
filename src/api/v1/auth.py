@@ -20,7 +20,7 @@ from responses.auth_responses import (
     get_signup_response,
     get_token_refr_response,
 )
-from schemas.auth import UserLogin, UserLoginResponse
+from schemas.auth import UserLogin, UserLoginResponse, UserTokenResponse
 from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth.auth_service import AuthService, get_auth_service
 from services.utils import (
@@ -81,24 +81,21 @@ async def login_user(
     """
     logger.info("login attempt from user %s", user_login.login)
 
-    result = await auth_service.login_user(user_login, user_agent)
+    user, tokens = await auth_service.login_user(user_login, user_agent)
 
     response.set_cookie(
         key="access_token",
-        value=result.access_token,
+        value=tokens.access_token,
         httponly=True,
         samesite="lax",
     )
     response.set_cookie(
         key="refresh_token",
-        value=result.refresh_token,
+        value=tokens.refresh_token,
         httponly=True,
         samesite="lax",
     )
-    return {
-        "access_token": result.access_token,
-        "refresh_token": result.refresh_token,
-    }
+    return user
 
 
 @router.post(
@@ -115,7 +112,7 @@ async def social_login() -> BaseModel:
 @router.post(
     "/token/refresh",
     status_code=status.HTTP_200_OK,
-    response_model=UserLoginResponse,
+    response_model=UserTokenResponse,
     summary="New access and refresh tokens",
     description="Get new access and refresh tokens",
     responses=get_token_refr_response(),
@@ -126,7 +123,7 @@ async def refresh_token(
     user_id: str = Depends(get_user_id_from_refresh_token),
     user_agent: Annotated[str | None, Header()] = None,
     auth_service: AuthService = Depends(get_auth_service),
-) -> UserLoginResponse:
+) -> UserTokenResponse:
     """
     Возвращает новую пару access_token/refresh_token токенов
     в обмен на корректный refresh_token

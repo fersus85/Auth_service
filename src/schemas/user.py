@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -19,8 +18,8 @@ class UserFull(UserBase):
 
 
 class UserRole(UserFull):
-    password_hash: str
-    roles: List[str] | None = None
+    password_hash: str | None = None
+    role: str | None = None
 
 
 # Ниже User для CRUD

@@ -8,12 +8,10 @@ logger = logging.getLogger(__name__)
 
 
 class RateLimiter:
-
     def __init__(self, redis):
         self.redis: Redis = redis
 
     async def check_limit(self):
-
         pipe = self.redis.pipeline()
         now = datetime.datetime.now()
         key = f"limit:{now.second}"

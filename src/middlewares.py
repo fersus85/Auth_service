@@ -16,7 +16,6 @@ async def log_stuff(request: Request, call_next):
 
 
 async def limiter(request: Request, call_next):
-
     redis: Redis = await get_redis()
 
     limiter = RateLimiter(redis)

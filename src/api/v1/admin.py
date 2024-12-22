@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 from fastapi.params import Depends
 
+from core.config import UserRoleDefault
 from responses.admin_responses import (
     get_role_assign_response,
     get_role_create_response,
@@ -21,7 +22,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/role",
     tags=["Admin"],
-    dependencies=[Depends(PermissionChecker(required={"admin", "superuser"}))],
+    dependencies=[
+        Depends(
+            PermissionChecker(
+                required={UserRoleDefault.ADMIN, UserRoleDefault.SUPERUSER}
+            )
+        )
+    ],
 )
 
 
@@ -90,7 +97,7 @@ async def delete_role(
 
 
 @router.get(
-    "/list/",
+    "/",
     response_model=List[RoleRead],
     status_code=status.HTTP_200_OK,
     summary="Roles list",
@@ -125,7 +132,7 @@ async def assign_role(
     responses=get_role_assign_response(),
 )
 async def revoke_role(
-    body: RoleAssign,
+    user_id: UUID,
     role_service: RoleService = Depends(get_role_service),
 ) -> None:
-    return await role_service.revoke(body.role_id, body.user_id)
+    return await role_service.revoke(user_id)

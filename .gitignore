@@ -24,3 +24,5 @@ dist/
 .vscode
 
 redisdata
+
+auth_pg_data

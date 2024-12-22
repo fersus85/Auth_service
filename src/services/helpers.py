@@ -28,7 +28,7 @@ class PermissionChecker:
         """
         Проверяет, имеет ли пользователь хотя бы одну из требуемых ролей.
         """
-        if not any(True for role in access.roles if role in self.required):
+        if access.role not in self.required:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not enough permissions",

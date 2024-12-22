@@ -8,12 +8,15 @@ services:
       - ./.env
     volumes:
       - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./auth_pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U app -d auth" ]
       interval: 5s
       timeout: 5s
       retries: 10
     restart: always
+    networks:
+      - auth_network
 
   redis:
     image: redis:7.4.1
@@ -25,6 +28,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - auth_network
 
   fastapi-auth:
     build:
@@ -41,6 +46,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - auth_network
 
   nginx:
     image: nginx:1.27.2
@@ -52,3 +59,9 @@ services:
       fastapi-auth:
         condition: service_healthy
     restart: always
+    networks:
+      - auth_network
+
+networks:
+  auth_network:
+    external: true

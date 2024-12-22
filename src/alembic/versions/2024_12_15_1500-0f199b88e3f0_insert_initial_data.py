@@ -12,6 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from alembic import op
+from core.config import UserRoleDefault
 from models.user import Role
 
 # revision identifiers, used by Alembic.
@@ -23,22 +24,22 @@ depends_on: Union[str, Sequence[str], None] = None
 roles = [
     Role(
         id=UUID("42966562-ec42-44a0-afd6-e72d1a839256"),
-        name="superuser",
+        name=UserRoleDefault.SUPERUSER,
         description="Может всё",
     ),
     Role(
         id=UUID("20afcc37-e8dc-473a-a3ce-a61e6b3d563e"),
-        name="admin",
+        name=UserRoleDefault.ADMIN,
         description="Администратор",
     ),
     Role(
         id=UUID("41987fd3-88cb-412c-9085-89201470610e"),
-        name="subscriber",
+        name=UserRoleDefault.SUBSCRIBER,
         description="Пользователь с допами",
     ),
     Role(
         id=UUID("ab1d025b-0e33-42e2-bba8-cf7125044263"),
-        name="user",
+        name=UserRoleDefault.USER,
         description="Зарегестрированный пользователь",
     ),
 ]

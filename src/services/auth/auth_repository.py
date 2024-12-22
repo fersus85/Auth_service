@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from core.config import UserRoleDefault
 from models import Role, User
 from models.session import ActiveSession, SessionHistory, SessionHistoryChoices
 from schemas.user import UserRead, UserRole
@@ -51,7 +52,7 @@ class SQLAlchemyAuthRepository(IAuthRepository):
             нужно создать нового пользователя
         """
 
-        stmt = select(Role).where(Role.name == "user")
+        stmt = select(Role).where(Role.name == UserRoleDefault.USER)
         role_instance = await self.db_session.scalar(stmt)
         user.roles.append(role_instance)
 
@@ -85,13 +86,15 @@ class SQLAlchemyAuthRepository(IAuthRepository):
         if not user:
             return None
 
-        roles = [role.name for role in user.roles]
+        role = next((role.name for role in user.roles), None)
 
         return UserRole(
             id=user.id,
+            first_name=user.first_name,
+            last_name=user.last_name,
             login=user.login,
             password_hash=user.password_hash,
-            roles=roles,
+            role=role,
         )
 
     async def get_user_roles(self, id: str) -> List[str]:
@@ -101,7 +104,7 @@ class SQLAlchemyAuthRepository(IAuthRepository):
         stmt = select(Role.name).join(User.roles).where(User.id == id)
         result = await self.db_session.scalars(stmt)
 
-        return result.all() or []
+        return result.first() or []
 
     async def check_refresh_token_in_active_session(
         self, user_id: UUID, user_agent: str, refresh_token: str
