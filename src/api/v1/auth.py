@@ -232,7 +232,7 @@ async def verify_role(
     auth_service: AuthService = Depends(get_auth_service),
 ) -> None:
     """
-    Проверка наличия роли в пользовательском токене доступа.
+    Проверка наличия роли нужного уровня в access токене.
     """
     result = await auth_service.verify_role(body.access_token, body.role)
     if not result:
