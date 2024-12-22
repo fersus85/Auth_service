@@ -8,6 +8,7 @@ services:
       - ./.env
     volumes:
       - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./auth_pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U app -d auth" ]
       interval: 5s
