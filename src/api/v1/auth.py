@@ -20,7 +20,8 @@ from responses.auth_responses import (
     get_signup_response,
     get_token_refr_response,
 )
-from schemas.auth import UserLogin, UserLoginResponse, UserTokenResponse
+from schemas.auth import UserLogin, UserLoginResponse, UserTokenResponse, \
+    VerifyToken
 from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth.auth_service import AuthService, get_auth_service
 from services.utils import (
@@ -219,23 +220,20 @@ async def password_update(
 
 @router.post(
     "/verify",
-    response_model=BaseModel,
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="User permissions verify",
     description="User permissions verify endpoint",
 )
 async def verify_role(
-    access_token: str = Query(description="Токен доступа"),
-    role: str = Query(description="Имя роли"),
+    body: VerifyToken,
     auth_service: AuthService = Depends(get_auth_service),
 ) -> None:
     """
     Проверка наличия роли в пользовательском токене доступа.
     """
-    result = await auth_service.verify_role(access_token, role)
+    result = await auth_service.verify_role(body.access_token, body.role)
     if not result:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Role {role} is not in token roles",
+            detail=f"Role {body.role} is not in token roles",
         )
-    return None
