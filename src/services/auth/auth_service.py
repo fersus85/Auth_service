@@ -247,7 +247,7 @@ class AuthService:
 
         priority = list(UserRoleDefault)
 
-        with suppress(KeyError):
+        with suppress(KeyError, ValueError):
             required_access_lvl = priority.index(UserRoleDefault(role))
             user_access_lvl = priority.index(UserRoleDefault(token_role))
 
