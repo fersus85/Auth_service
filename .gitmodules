@@ -1,6 +1,6 @@
 [submodule "Movies_API"]
 	path = Movies_API
-	url = git@github.com:fersus85/Async_API_sprint_2.git
+	url = https://github.com/fersus85/Async_API_sprint_2.git
 [submodule "Admin_panel"]
 	path = Admin_panel
-	url = git@github.com:fersus85/Admin_panel.git
+	url = https://github.com/fersus85/Admin_panel.git
