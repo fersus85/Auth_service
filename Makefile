@@ -17,7 +17,7 @@ up-auth:
 # Очистка после остановки приложения Auth
 down-auth:
 	@echo "Очистка временных файлов и контейнеров..."
-	@docker compose down -v
+	@docker compose down
 	@find . -type f -name '*.pyc' -delete
 	@find . -type d -name '__pycache__' -delete
 
@@ -33,7 +33,7 @@ up-admin:
 # Очистка после остановки приложения Admin
 down-admin:
 	@echo "Очистка контейнеров..."
-	@docker compose -f $(ADMIN_COMPOSE_PATH) down -v
+	@docker compose -f $(ADMIN_COMPOSE_PATH) down
 
 # Установка зависимостей продашен
 install:
