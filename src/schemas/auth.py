@@ -67,4 +67,3 @@ class UserTokenResponse(BaseModel):
 class VerifyToken(BaseModel):
     access_token: str
     role: str
-

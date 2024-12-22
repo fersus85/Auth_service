@@ -7,7 +7,6 @@ from fastapi import (
     Depends,
     Header,
     HTTPException,
-    Query,
     Request,
     Response,
     status,
@@ -20,8 +19,12 @@ from responses.auth_responses import (
     get_signup_response,
     get_token_refr_response,
 )
-from schemas.auth import UserLogin, UserLoginResponse, UserTokenResponse, \
-    VerifyToken
+from schemas.auth import (
+    UserLogin,
+    UserLoginResponse,
+    UserTokenResponse,
+    VerifyToken,
+)
 from schemas.user import UserCreate, UserRead, UserUpdate
 from services.auth.auth_service import AuthService, get_auth_service
 from services.utils import (
