@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 
 from api import router as api_router
@@ -25,9 +26,21 @@ app = FastAPI(
     default_response_class=ORJSONResponse,
 )
 
+allowed_origins = [
+    "https://oauth.yandex.ru",
+    "https://login.yandex.ru",
+]
+
 
 app.middleware("http")(log_stuff)
 app.middleware("http")(limiter)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(api_router, prefix="/api")
