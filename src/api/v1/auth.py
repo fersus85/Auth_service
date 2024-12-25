@@ -99,17 +99,6 @@ async def login_user(
 
 
 @router.post(
-    "/social-login",
-    response_model=BaseModel,
-    status_code=status.HTTP_200_OK,
-    summary="OAuth 2.0 login",
-    description="OAuth 2.0 login",
-)
-async def social_login() -> BaseModel:
-    return {}
-
-
-@router.post(
     "/token/refresh",
     status_code=status.HTTP_200_OK,
     response_model=UserTokenResponse,

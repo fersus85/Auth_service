@@ -4,6 +4,7 @@ from uuid import UUID
 
 from models import SessionHistoryChoices, User
 from schemas.user import UserCreate, UserRead, UserRole
+from schemas.yndx_oauth import UserInfoSchema
 
 
 class IAuthRepository(ABC):
@@ -14,6 +15,19 @@ class IAuthRepository(ABC):
 
         :param to_create: Схема на основе которой
             нужно создать нового пользователя
+        """
+        pass
+
+    @abstractmethod
+    async def update_user(
+        self, user_db: User, user_info: UserInfoSchema
+    ) -> UserRead:
+        """
+        Обновляет информацию о пользователе.
+
+        :param user_db: Существующий пользователь из базы данных.
+        :param user_info: Схема с новой информацией о пользователе.
+        :return: Обновленная информация о пользователе.
         """
         pass
 
