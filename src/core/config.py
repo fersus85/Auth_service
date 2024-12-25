@@ -1,7 +1,7 @@
 import os
 from enum import Enum, auto
 
-from pydantic import PostgresDsn, computed_field
+from pydantic import Field, PostgresDsn, computed_field
 from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,6 +18,17 @@ class UserRoleDefault(StrEnum):
     ADMIN = auto()
     SUBSCRIBER = auto()
     USER = auto()
+
+
+class YndxOauthSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env", env_ignore_empty=True, extra="ignore"
+    )
+    YNDX_CLIENT_ID: str
+    YNDX_CLIENT_SECRET: str
+    YNDX_CODE_URL: str
+    YNDX_TOKEN_URL: str
+    YNDX_INFO_URL: str
 
 
 class Settings(BaseSettings):
@@ -46,6 +57,8 @@ class Settings(BaseSettings):
     JWT_TOKEN_EXPIRE_TIME_M: int = 15
 
     REQUEST_LIMIT_PER_SECOND: int = 10
+
+    yndx_oauth: YndxOauthSettings = Field(default_factory=YndxOauthSettings)
 
     @computed_field
     @property
