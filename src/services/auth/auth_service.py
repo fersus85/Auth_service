@@ -11,8 +11,10 @@ from models.session import SessionHistoryChoices
 from models.user import User
 from schemas.auth import UserLogin, UserLoginResponse, UserTokenResponse
 from schemas.user import UserCreate, UserRead, UserRole, UserUpdate
+from schemas.yndx_oauth import UserInfoSchema
 from services.auth import IAuthRepository
 from services.auth.auth_repository import get_repository
+from services.helpers import generate_secure_password
 from services.user.user_service import UserService, get_user_service
 from services.utils import decode_jwt_token, generate_new_tokens
 
@@ -100,6 +102,39 @@ class AuthService:
         )
         return created_user
 
+    async def get_token(
+        self, user: UserRole, user_agent: str
+    ) -> tuple[UserRole, UserTokenResponse]:
+        (
+            access_token_encoded_jwt,
+            refresh_token_encoded_jwt,
+        ) = await generate_new_tokens(user.id, user.role)
+
+        await self.repository.delete_active_session(user.id, user_agent)
+
+        await self.repository.insert_new_active_session(
+            user.id, user_agent, refresh_token_encoded_jwt
+        )
+        await self.repository.insert_event_to_session_hist(
+            user.id,
+            user_agent,
+            refresh_token_encoded_jwt,
+            SessionHistoryChoices.LOGIN_WITH_PASSWORD,
+        )
+
+        return (
+            UserLoginResponse(
+                id=user.id,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                role=user.role,
+            ),
+            UserTokenResponse(
+                access_token=access_token_encoded_jwt,
+                refresh_token=refresh_token_encoded_jwt,
+            ),
+        )
+
     async def login_user(
         self, user_login: UserLogin, user_agent: str
     ) -> tuple[UserRole, UserTokenResponse]:
@@ -147,6 +182,49 @@ class AuthService:
                 refresh_token=refresh_token_encoded_jwt,
             ),
         )
+
+    async def login_user_yndx(
+        self, user_info: UserInfoSchema, user_agent: str
+    ) -> tuple[UserLoginResponse, UserTokenResponse]:
+        """
+        Аутентификация пользователя логином и паролем.
+        Если пользователь не существует, он будет создан с автоматически
+        сгенерированным паролем.
+
+        Параметры:
+        user_info (UserInfoSchema): Информация о пользователе
+        user_agent (str): Информация о клиенте, который выполняет запрос.
+
+        Возвращает:
+        tuple[UserLoginResponse, UserTokenResponse]: Информация о
+        пользователе и токены
+        """
+        user: UserRole = await self.repository.get_user_by_login(
+            user_info.login
+        )
+        if user:
+            logger.warning("User %s exist, updating", user_info.login)
+            await self.repository.update_user(user, user_info)
+
+        else:
+            logger.warning("User %s creating", user_info.login)
+            # TODO пароль отправлять на почту пользователя
+            psw = generate_secure_password()
+            new_user = UserCreate(
+                login=user_info.login,
+                first_name=user_info.first_name,
+                last_name=user_info.last_name,
+                password=psw,
+            )
+            await self.signup_user(new_user)
+
+        login_user = await self.repository.get_user_with_roles_by_login(
+            user_info.login
+        )
+
+        user_resp, token_resp = await self.get_token(login_user, user_agent)
+
+        return user_resp, token_resp
 
     async def logout_user(
         self,
