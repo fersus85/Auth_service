@@ -14,6 +14,7 @@ from core.config import UserRoleDefault
 from models import Role, User
 from models.session import ActiveSession, SessionHistory, SessionHistoryChoices
 from schemas.user import UserRead, UserRole
+from schemas.yndx_oauth import UserInfoSchema
 from services import get_data_access
 from services.auth import IAuthRepository, get_auth_repository_class
 from services.utils import decode_jwt_token
@@ -60,6 +61,21 @@ class SQLAlchemyAuthRepository(IAuthRepository):
             self.db_session.add(user)
 
         return UserRead.model_validate(user)
+
+    async def update_user(
+        self, user_db: User, user_info: UserInfoSchema
+    ) -> UserRead:
+        """
+        Обновляет информацию о пользователе.
+
+        :param user_db: Существующий пользователь из базы данных.
+        :param user_info: Схема с новой информацией о пользователе.
+        :return: Обновленная информация о пользователе.
+        """
+        user_db.first_name = user_info.first_name
+        user_db.last_name = user_info.last_name
+        await self.db_session.commit()
+        return UserRead.model_validate(user_db)
 
     async def get_user_by_login(self, login: str) -> User:
         """
