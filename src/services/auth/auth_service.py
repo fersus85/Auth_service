@@ -105,6 +105,21 @@ class AuthService:
     async def get_token(
         self, user: UserRole, user_agent: str
     ) -> tuple[UserRole, UserTokenResponse]:
+        """
+        Генерирует новые токены доступа и обновления для пользователя,
+        удаляет активную сессию и создает новую сессию.
+
+        Args:
+            user (UserRole): Объект, представляющий пользователя,
+                            содержащий информацию о его идентификаторе и роли.
+            user_agent (str): Строка, представляющая информацию о клиенте
+                            (браузере или приложении) пользователя.
+
+        Returns:
+            tuple[UserRole, UserTokenResponse]: Кортеж, содержащий:
+                - UserLoginResponse: Объект с информацией о пользователе.
+                - UserTokenResponse: Объект с токенами доступа и обновления.
+        """
         (
             access_token_encoded_jwt,
             refresh_token_encoded_jwt,
@@ -153,35 +168,9 @@ class AuthService:
             logger.error("Password is incorrect")
             raise UnauthorizedExc("Invalid login or password")
 
-        (
-            access_token_encoded_jwt,
-            refresh_token_encoded_jwt,
-        ) = await generate_new_tokens(user.id, user.role)
+        user_resp, token_resp = await self.get_token(user, user_agent)
 
-        await self.repository.delete_active_session(user.id, user_agent)
-
-        await self.repository.insert_new_active_session(
-            user.id, user_agent, refresh_token_encoded_jwt
-        )
-        await self.repository.insert_event_to_session_hist(
-            user.id,
-            user_agent,
-            refresh_token_encoded_jwt,
-            SessionHistoryChoices.LOGIN_WITH_PASSWORD,
-        )
-
-        return (
-            UserLoginResponse(
-                id=user.id,
-                first_name=user.first_name,
-                last_name=user.last_name,
-                role=user.role,
-            ),
-            UserTokenResponse(
-                access_token=access_token_encoded_jwt,
-                refresh_token=refresh_token_encoded_jwt,
-            ),
-        )
+        return user_resp, token_resp
 
     async def login_user_yndx(
         self, user_info: UserInfoSchema, user_agent: str
