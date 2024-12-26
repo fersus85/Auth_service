@@ -84,6 +84,10 @@ su-create:
 db/downgrade-auth:
 	@docker compose exec fastapi-auth alembic downgrade base
 
+# Запуск Jaeger
+jaeger-up:
+	@docker-compose --file docker-compose-jaeger.yml up -d --build
+
 # Вывод справки
 help:
 	@echo "Доступные команды:"
@@ -101,4 +105,5 @@ help:
 	@echo "  make test-up-auth        - Поднятие инфраструктуры тестов"
 	@echo "  make tes-auth            - Запуск тестов"
 	@echo "  make test-down-auth      - Остановка инфраструктуры тестов"
-	@echo "  remove-images -auth      - Удаление указанных образов"
+	@echo "  make remove-images -auth - Удаление указанных образов"
+	@echo "  make jaeger-up           - Поднять jaeger"
