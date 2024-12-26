@@ -52,9 +52,12 @@ services:
   nginx:
     image: nginx:1.27.2
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/localhost.crt:/etc/nginx/localhost.crt:ro
+      - ./nginx/localhost.key:/etc/nginx/localhost.key:ro
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       fastapi-auth:
         condition: service_healthy

@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
@@ -30,10 +31,22 @@ app = FastAPI(
 )
 
 FastAPIInstrumentor.instrument_app(app)
+allowed_origins = [
+    "https://oauth.yandex.ru",
+    "https://login.yandex.ru",
+]
+
 
 app.middleware("http")(log_stuff)
 app.middleware("http")(limiter)
 app.middleware("http")(before_request)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(api_router, prefix="/api")
