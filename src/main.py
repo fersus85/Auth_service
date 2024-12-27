@@ -31,11 +31,6 @@ app = FastAPI(
 )
 
 FastAPIInstrumentor.instrument_app(app)
-allowed_origins = [
-    "https://oauth.yandex.ru",
-    "https://login.yandex.ru",
-]
-
 
 app.middleware("http")(log_stuff)
 app.middleware("http")(limiter)
