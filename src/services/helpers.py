@@ -65,6 +65,79 @@ async def yndx_token_request(code: str) -> dict:
     return token_resp.json()
 
 
+async def vk_token_request(
+    code: str, code_verifier: str, device_id: str, state: str
+) -> dict:
+    """
+    Запрашивает токен доступа VK OAuth с использованием
+    кода авторизации.
+
+    Args:
+        code (str): Код авторизации, полученный после успешной
+        авторизации пользователя.
+        code_verifier (str): сгенерированный на прошлом шаге код PKCE
+        device_id (str): устройство пользователя, полученное от VK
+        state (str): уникальная строка
+
+    Returns:
+        dict: Словарь с токеном доступа и другой информацией,
+        полученной от VK.
+    """
+    client_id = settings.vk_oauth.VK_CLIENT_ID
+    client_secret = settings.vk_oauth.VK_CLIENT_SECRET
+    raw_str = f"{client_id}:{client_secret}"
+    encoded_creds = b64encode(raw_str.encode()).decode()
+
+    data = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "code_verifier": code_verifier,
+        "client_id": client_id,
+        "device_id": device_id,
+        "state": state,
+        "redirect_uri": "https://localhost/api/v1/oauth/vk_callback",
+    }
+
+    headers = {
+        "Content-type": "application/x-www-form-urlencoded",
+        "Authorization": f"Basic {encoded_creds}",
+    }
+
+    token_resp = requests.post(
+        url=settings.vk_oauth.VK_TOKEN_URL, headers=headers, data=data
+    )
+
+    return token_resp.json()
+
+
+async def vk_info_request(resp_token: dict) -> dict:
+    """
+    Запрашивает информацию о пользователе из VK OAuth.
+
+    Args:
+        resp_token (dict): Словарь, содержащий токен доступа,
+        полученный после авторизации.
+
+    Returns:
+        dict: Словарь с информацией о пользователе, полученной от VK.
+    """
+
+    headers = {
+        "Content-type": "application/x-www-form-urlencoded",
+    }
+
+    data = {
+        "access_token": resp_token["access_token"],
+        "client_id": settings.vk_oauth.VK_CLIENT_ID,
+    }
+
+    response_info = requests.post(
+        url=settings.vk_oauth.VK_INFO_URL, data=data, headers=headers
+    )
+
+    return response_info.json()
+
+
 def set_tokens_in_cookies(
     response: Response, tokens: UserTokenResponse
 ) -> None:
@@ -83,6 +156,31 @@ def set_tokens_in_cookies(
         httponly=True,
         samesite="lax",
     )
+
+
+async def convert_vk_user_info_to_yndx(resp_info_dict: dict) -> dict:
+    """
+    Конвертирует User Info VK в формат Yandex User Info,
+    чтобы далее использовать общие функции и не дублировать код
+    """
+    resp_info_dict: dict = resp_info_dict.get("user", None)
+
+    resp_info_dict["display_name"] = resp_info_dict.get(
+        "display_name",
+        f"{resp_info_dict['first_name']} {resp_info_dict['last_name']}",
+    )
+    resp_info_dict["real_name"] = resp_info_dict.get(
+        "real_name", resp_info_dict.get("display_name", "")
+    )
+    resp_info_dict["login"] = resp_info_dict.get(
+        "login", resp_info_dict.get("email", "")
+    )
+    resp_info_dict["sex"] = str(resp_info_dict.get("sex", None))
+    resp_info_dict["id"] = resp_info_dict.get("user_id", "")
+    resp_info_dict["client_id"] = resp_info_dict.get("user_id", "")
+    resp_info_dict["psuid"] = ""
+
+    return resp_info_dict
 
 
 def generate_secure_password(length=12):

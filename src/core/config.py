@@ -31,6 +31,17 @@ class YndxOauthSettings(BaseSettings):
     YNDX_INFO_URL: str
 
 
+class VKOauthSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env", env_ignore_empty=True, extra="ignore"
+    )
+    VK_CLIENT_ID: str
+    VK_CLIENT_SECRET: str
+    VK_CODE_URL: str
+    VK_TOKEN_URL: str
+    VK_INFO_URL: str
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_ignore_empty=True, extra="ignore"
@@ -59,6 +70,7 @@ class Settings(BaseSettings):
     REQUEST_LIMIT_PER_SECOND: int = 10
 
     yndx_oauth: YndxOauthSettings = Field(default_factory=YndxOauthSettings)
+    vk_oauth: VKOauthSettings = Field(default_factory=VKOauthSettings)
 
     @computed_field
     @property
