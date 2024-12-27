@@ -62,3 +62,8 @@ class UserLoginResponse(BaseModel):
 class UserTokenResponse(BaseModel):
     access_token: str
     refresh_token: str
+
+
+class VerifyToken(BaseModel):
+    access_token: str
+    role: str
