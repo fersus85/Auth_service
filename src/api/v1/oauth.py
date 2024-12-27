@@ -202,7 +202,9 @@ async def vk_callback(
     resp_info_dict = await convert_vk_user_info_to_yndx(resp_info_dict)
 
     user_info = UserInfoSchema(**resp_info_dict)
-    user, tokens = await auth_service.login_user_yndx(user_info, user_agent, request_id)
+    user, tokens = await auth_service.login_user_yndx(
+        user_info, user_agent, request_id
+    )
 
     set_tokens_in_cookies(response, tokens)
 
