@@ -32,7 +32,14 @@ router = APIRouter(prefix="/oauth", tags=["OAuth 2.0"])
     "/yndx_social_login",
     status_code=status.HTTP_302_FOUND,
     summary="OAuth 2.0 Yndx login",
-    description="Redirects to Yandex OAuth 2.0 login page.",
+    description="""
+    ## Важно
+    Для тестирования этого эндпоинта вам необходимо скопировать ссылку
+    https://localhost:443/api/v1/oauth/yndx_social_login
+    и вызвать ее в браузере.
+    Так как Swagger UI делает xhr-запросы, при выполнении которых
+    могут возникать ограничения, связанные с CORS.
+    """,
 )
 async def yndx_social_login(
     request: Request, tracer: Tracer = Depends(get_tracer)
@@ -54,7 +61,10 @@ async def yndx_social_login(
     response_model="",
     status_code=status.HTTP_200_OK,
     summary="OAuth 2.0 Yndx login callback",
-    description="Login user via Yandex OAuth 2.0",
+    description="""
+    Логинит пользователя с помощью информации, полученной от Yandex,
+    на основе кода, полученного в эндпоинте /yndx_social_login
+    """,
 )
 async def yndx_callback(
     response: Response,
