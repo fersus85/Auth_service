@@ -104,6 +104,8 @@ help:
 	@echo "  make su-create           - Подключение к Auth контейнеру для создания Superuser"
 	@echo "  make up-admin            - Запуск сервиса Admin"
 	@echo "  make down-admin          - Остановка Admin и очиска"
+	@echo "  make up-movie            - Запуск сервиса Movies_API"
+	@echo "  make down-movie          - Остановка Movies_API и очиска"
 	@echo "  make install             - Установка зависимостей продакшен"
 	@echo "  make install-dev         - Установка зависимостей dev"
 	@echo "  make lint                - Запуск линтера"
