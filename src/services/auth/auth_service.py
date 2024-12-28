@@ -1,10 +1,11 @@
 import logging
+from contextlib import suppress
 
 import jwt
 from fastapi import Depends
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from core.config import settings
+from core.config import UserRoleDefault, settings
 from db.casher import AbstractCache, get_cacher
 from exceptions.errors import PasswordOrLoginExc, UnauthorizedExc
 from models.session import SessionHistoryChoices
@@ -336,8 +337,15 @@ class AuthService:
         access_token_dict: dict = await decode_jwt_token(access_token)
         token_role: str = access_token_dict.get("role", None)
 
-        if role == token_role:
-            return True
+        priority = list(UserRoleDefault)
+
+        with suppress(KeyError, ValueError):
+            required_access_lvl = priority.index(UserRoleDefault(role))
+            user_access_lvl = priority.index(UserRoleDefault(token_role))
+
+            if required_access_lvl >= user_access_lvl:
+                return True
+
         return False
 
     async def _blacklist_access_token(self, encoded_jwt_token: str):

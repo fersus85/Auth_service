@@ -6,6 +6,7 @@ SRC_DIR = src
 IMAGES = fastapi:latest
 TEST_PATH = $(CURDIR)/tests
 ADMIN_COMPOSE_PATH = $(CURDIR)/Admin_panel/docker-compose.yml
+MOVIE_COMPOSE_PATH = $(CURDIR)/Movies_API/docker-compose.yml
 
 
 all: up
@@ -34,6 +35,15 @@ up-admin:
 down-admin:
 	@echo "Очистка контейнеров..."
 	@docker compose -f $(ADMIN_COMPOSE_PATH) down
+
+# Запуск приложения Admin
+up-movie:
+	@docker compose -f $(MOVIE_COMPOSE_PATH) up -d --build
+
+# Очистка после остановки приложения Admin
+down-movie:
+	@echo "Очистка контейнеров..."
+	@docker compose -f $(MOVIE_COMPOSE_PATH) down
 
 # Установка зависимостей продашен
 install:
@@ -98,6 +108,8 @@ help:
 	@echo "  make su-create           - Подключение к Auth контейнеру для создания Superuser"
 	@echo "  make up-admin            - Запуск сервиса Admin"
 	@echo "  make down-admin          - Остановка Admin и очиска"
+	@echo "  make up-movie            - Запуск сервиса Movies_API"
+	@echo "  make down-movie          - Остановка Movies_API и очиска"
 	@echo "  make install             - Установка зависимостей продакшен"
 	@echo "  make install-dev         - Установка зависимостей dev"
 	@echo "  make lint                - Запуск линтера"
