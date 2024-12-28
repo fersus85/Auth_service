@@ -11,7 +11,6 @@ from fastapi import (
     Response,
     status,
 )
-from pydantic import BaseModel
 
 from responses.auth_responses import (
     get_change_psw_response,
