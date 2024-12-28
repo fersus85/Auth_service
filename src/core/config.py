@@ -64,9 +64,6 @@ class GoogleOauthSettings(BaseSettings):
                 "token_uri": settings.google_oauth.GOOGLE_TOKEN_URL,
                 "client_secret": settings.google_oauth.GOOGLE_CLIENT_SECRET,
                 "response_type": "code",
-                # TODO
-                # "response_type": "code",
-                # "state": '',
             }
         }
 
