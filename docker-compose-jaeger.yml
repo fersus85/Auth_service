@@ -1,0 +1,13 @@
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+    restart: always
+    networks:
+      - auth_network
+
+networks:
+  auth_network:
+    external: true

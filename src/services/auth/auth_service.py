@@ -16,6 +16,7 @@ from schemas.yndx_oauth import UserInfoSchema
 from services.auth import IAuthRepository
 from services.auth.auth_repository import get_repository
 from services.helpers import generate_secure_password
+from services.tracer import Tracer, get_tracer
 from services.user.user_service import UserService, get_user_service
 from services.utils import decode_jwt_token, generate_new_tokens
 
@@ -79,29 +80,34 @@ class AuthService:
         repository: IAuthRepository,
         cacher: AbstractCache,
         user_service: UserService,
+        tracer: Tracer,
     ):
         self.repository = repository
         self.cacher = cacher
         self.user_service = user_service
+        self.tracer = tracer
 
     async def signup_user(self, user_create: UserCreate) -> UserRead:
         """
         Регистрация пользователя.
         """
+        with self.tracer.start_span("auth_service.signup_user") as span:
+            span.set_attribute("login", user_create.login)
+            user_create_dict = user_create.model_dump()
 
-        user_create_dict = user_create.model_dump()
+            password = user_create_dict.pop("password")
 
-        password = user_create_dict.pop("password")
+            if len(password) < 8 or len(user_create_dict["login"]) < 3:
+                raise PasswordOrLoginExc()
 
-        if len(password) < 8 or len(user_create_dict["login"]) < 3:
-            raise PasswordOrLoginExc()
+            user_create_dict["password_hash"] = generate_password_hash(
+                password
+            )
 
-        user_create_dict["password_hash"] = generate_password_hash(password)
-
-        created_user = await self.repository.create_user(
-            User(**user_create_dict)
-        )
-        return created_user
+            created_user = await self.repository.create_user(
+                User(**user_create_dict)
+            )
+            return created_user
 
     async def get_token(
         self, user: UserRole, user_agent: str
@@ -174,7 +180,7 @@ class AuthService:
         return user_resp, token_resp
 
     async def login_user_yndx(
-        self, user_info: UserInfoSchema, user_agent: str
+        self, user_info: UserInfoSchema, user_agent: str, request_id: str
     ) -> tuple[UserLoginResponse, UserTokenResponse]:
         """
         Аутентификация пользователя логином и паролем.
@@ -189,32 +195,51 @@ class AuthService:
         tuple[UserLoginResponse, UserTokenResponse]: Информация о
         пользователе и токены
         """
-        user: UserRole = await self.repository.get_user_by_login(
-            user_info.login
-        )
-        if user:
-            logger.warning("User %s exist, updating", user_info.login)
-            await self.repository.update_user(user, user_info)
-
-        else:
-            logger.warning("User %s creating", user_info.login)
-            # TODO пароль отправлять на почту пользователя
-            psw = generate_secure_password()
-            new_user = UserCreate(
-                login=user_info.login,
-                first_name=user_info.first_name,
-                last_name=user_info.last_name,
-                password=psw,
+        with self.tracer.start_span("auth_service.login_user_yndx") as span:
+            span.set_attribute("user_login", user_info.login)
+            span.set_attribute("http.request_id", request_id)
+            user: UserRole = await self.repository.get_user_by_login(
+                user_info.login
             )
-            await self.signup_user(new_user)
+            with self.tracer.start_span("get_user_by_login") as inner_span:
+                inner_span.set_attribute("http.request_id", request_id)
+                user: UserRole = await self.repository.get_user_by_login(
+                    user_info.login
+                )
+                if user:
+                    inner_span.set_attribute("user_exists", True)
+                    logger.warning("User %s exists, updating", user_info.login)
+                    await self.repository.update_user(user, user_info)
+                else:
+                    inner_span.set_attribute("user_create", False)
+                    logger.warning("User %s creating", user_info.login)
+                    # TODO пароль отправлять на почту пользователя
+                    psw = generate_secure_password()
+                    new_user = UserCreate(
+                        login=user_info.login,
+                        first_name=user_info.first_name,
+                        last_name=user_info.last_name,
+                        password=psw,
+                    )
+                    await self.signup_user(new_user)
 
-        login_user = await self.repository.get_user_with_roles_by_login(
-            user_info.login
-        )
+            with self.tracer.start_span(
+                "get_user_with_roles_by_login"
+            ) as inner_span:
+                inner_span.set_attribute("http.request_id", request_id)
+                login_user = (
+                    await self.repository.get_user_with_roles_by_login(
+                        user_info.login
+                    )
+                )
 
-        user_resp, token_resp = await self.get_token(login_user, user_agent)
+            with self.tracer.start_span("get_token") as inner_span:
+                inner_span.set_attribute("http.request_id", request_id)
+                user_resp, token_resp = await self.get_token(
+                    login_user, user_agent
+                )
 
-        return user_resp, token_resp
+            return user_resp, token_resp
 
     async def logout_user(
         self,
@@ -344,10 +369,14 @@ def get_auth_service(
     repository: IAuthRepository = Depends(get_repository),
     cacher: AbstractCache = Depends(get_cacher),
     user_service: UserService = Depends(get_user_service),
+    tracer: Tracer = Depends(get_tracer),
 ) -> AuthService:
     """
     Функция для создания экземпляра класса AuthService
     """
     return AuthService(
-        repository=repository, cacher=cacher, user_service=user_service
+        repository=repository,
+        cacher=cacher,
+        user_service=user_service,
+        tracer=tracer,
     )
