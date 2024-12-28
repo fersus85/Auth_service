@@ -11,7 +11,7 @@ from exceptions.errors import PasswordOrLoginExc, UnauthorizedExc
 from models.session import SessionHistoryChoices
 from models.user import User
 from schemas.auth import UserLogin, UserLoginResponse, UserTokenResponse
-from schemas.user import UserCreate, UserRead, UserRole, UserUpdate
+from schemas.user import UserBase, UserCreate, UserRead, UserRole, UserUpdate
 from schemas.yndx_oauth import UserInfoSchema
 from services.auth import IAuthRepository
 from services.auth.auth_repository import get_repository
@@ -215,6 +215,36 @@ class AuthService:
         user_resp, token_resp = await self.get_token(login_user, user_agent)
 
         return user_resp, token_resp
+
+    async def login_user_oauth(
+        self, user: UserBase, user_agent: str
+    ) -> tuple[UserLoginResponse, UserTokenResponse]:
+        """
+        Аутентификация пользователя логином и паролем.
+        Если пользователь не существует, он будет создан с автоматически
+        сгенерированным паролем.
+
+        Параметры:
+        user_info (UserBase): Информация о пользователе
+        user_agent (str): Информация о клиенте, который выполняет запрос.
+
+        Возвращает:
+        tuple[UserLoginResponse, UserTokenResponse]: Информация о
+        пользователе и токены
+        """
+        user_info = UserInfoSchema(
+            login=user.login,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            display_name="",
+            real_name="",
+            sex="",
+            id="",
+            client_id="",
+            psuid="",
+        )
+
+        return await self.login_user_yndx(user_info, user_agent)
 
     async def logout_user(
         self,

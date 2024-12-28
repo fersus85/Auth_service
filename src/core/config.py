@@ -1,5 +1,6 @@
 import os
 from enum import Enum, auto
+from typing import Any, Dict
 
 from pydantic import Field, PostgresDsn, computed_field
 from pydantic_core import MultiHostUrl
@@ -42,6 +43,44 @@ class VKOauthSettings(BaseSettings):
     VK_INFO_URL: str
 
 
+class GoogleOauthSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env", env_ignore_empty=True, extra="ignore"
+    )
+    GOOGLE_CLIENT_ID: str
+    GOOGLE_PROJECT_ID: str
+    GOOGLE_CLIENT_SECRET: str
+    GOOGLE_AUTH_URL: str
+    GOOGLE_TOKEN_URL: str
+    GOOGLE_REDIRECT_URL: str
+
+    @staticmethod
+    def get_client_config() -> Dict[str, Any]:
+        params = {
+            "web": {
+                "client_id": settings.google_oauth.GOOGLE_CLIENT_ID,
+                "project_id": settings.google_oauth.GOOGLE_PROJECT_ID,
+                "auth_uri": settings.google_oauth.GOOGLE_AUTH_URL,
+                "token_uri": settings.google_oauth.GOOGLE_TOKEN_URL,
+                "client_secret": settings.google_oauth.GOOGLE_CLIENT_SECRET,
+                "response_type": "code",
+                # TODO
+                # "response_type": "code",
+                # "state": '',
+            }
+        }
+
+        return {
+            "client_config": params,
+            "redirect_uri": settings.google_oauth.GOOGLE_REDIRECT_URL,
+            "scopes": [
+                "openid",
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/userinfo.profile",
+            ],
+        }
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_ignore_empty=True, extra="ignore"
@@ -71,6 +110,9 @@ class Settings(BaseSettings):
 
     yndx_oauth: YndxOauthSettings = Field(default_factory=YndxOauthSettings)
     vk_oauth: VKOauthSettings = Field(default_factory=VKOauthSettings)
+    google_oauth: GoogleOauthSettings = Field(
+        default_factory=GoogleOauthSettings
+    )
 
     @computed_field
     @property

@@ -9,14 +9,18 @@ from fastapi import (
     APIRouter,
     Depends,
     Header,
+    HTTPException,
     Query,
     Request,
     Response,
     status,
 )
 from fastapi.responses import RedirectResponse
+from google_auth_oauthlib.flow import Flow as GoogleFlow
+from googleapiclient.discovery import build
 
 from core.config import settings
+from schemas.user import UserBase
 from schemas.yndx_oauth import UserInfoSchema
 from services.auth.auth_service import AuthService, get_auth_service
 from services.helpers import (
@@ -31,6 +35,7 @@ from services.helpers import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/oauth", tags=["OAuth 2.0"])
+google_router = APIRouter(prefix="/google", tags=["Google OAuth 2.0"])
 
 
 @router.get(
@@ -89,7 +94,6 @@ async def yndx_callback(
 async def vk_social_login(
     response: Response,
 ):
-
     state = "".join(
         random.choices(string.ascii_uppercase + string.digits, k=32)
     )
@@ -141,7 +145,6 @@ async def vk_callback(
     auth_service: AuthService = Depends(get_auth_service),
     user_agent: Annotated[str | None, Header()] = None,
 ):
-
     origin_state = request.cookies.get("vk_oauth_state")
     code_verifier = request.cookies.get("vk_oauth_code_verifier")
 
@@ -160,6 +163,69 @@ async def vk_callback(
 
     user_info = UserInfoSchema(**resp_info_dict)
     user, tokens = await auth_service.login_user_yndx(user_info, user_agent)
+
+    set_tokens_in_cookies(response, tokens)
+
+    return user
+
+
+@google_router.get(
+    "/login",
+    status_code=status.HTTP_200_OK,
+    summary="OAuth 2.0 Google login",
+    description="Redirects to Google OAuth 2.0 login page.",
+)
+async def google_login():
+    flow = GoogleFlow.from_client_config(
+        **settings.google_oauth.get_client_config()
+    )
+
+    authorization_url, state = flow.authorization_url(
+        access_type="offline", include_granted_scopes="true", prompt="consent"
+    )
+    return RedirectResponse(url=authorization_url)
+
+
+@google_router.get(
+    "/callback",
+    status_code=status.HTTP_200_OK,
+    summary="OAuth 2.0 Google login callback",
+    description="Login user via Google OAuth 2.0",
+)
+async def google_callback(
+    request: Request,
+    response: Response,
+    auth_service: AuthService = Depends(get_auth_service),
+    user_agent: Annotated[str | None, Header()] = None,
+):
+    error = request.query_params.get("error")
+    if error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=error
+        )
+
+    flow = GoogleFlow.from_client_config(
+        **settings.google_oauth.get_client_config()
+    )
+    flow.fetch_token(authorization_response=str(request.url))
+
+    credentials = flow.credentials
+    service = build("people", "v1", credentials=credentials)
+
+    profile = (
+        service.people()
+        .get(resourceName="people/me", personFields="names,emailAddresses")
+        .execute()
+    )
+
+    user = UserBase(
+        login=profile["names"][0]["displayName"],
+        first_name=profile["names"][0].get("givenName", ""),
+        last_name=profile["names"][0].get("familyName", ""),
+        # email=profile["emailAddresses"][0]["value"]
+    )
+
+    user, tokens = await auth_service.login_user_oauth(user, user_agent)
 
     set_tokens_in_cookies(response, tokens)
 
