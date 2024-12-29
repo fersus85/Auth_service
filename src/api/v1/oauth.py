@@ -46,7 +46,7 @@ google_router = APIRouter(prefix="/google", tags=["Google OAuth 2.0"])
     description="""
     ## Важно
     Для тестирования этого эндпоинта вам необходимо скопировать ссылку
-    https://localhost:443/api/v1/oauth/yndx_social_login
+    https://localhost/api/v1/oauth/yndx_social_login
     и вызвать ее в браузере.
     Так как Swagger UI делает xhr-запросы, при выполнении которых
     могут возникать ограничения, связанные с CORS.
@@ -120,7 +120,14 @@ async def yndx_callback(
     "/vk_social_login",
     status_code=status.HTTP_200_OK,
     summary="OAuth 2.0 VK login",
-    description="Redirects to VK OAuth 2.0 login page.",
+    description="""
+    ## Важно
+    Для тестирования этого эндпоинта вам необходимо скопировать ссылку
+    https://localhost/api/v1/oauth/vk_social_login
+    и вызвать ее в браузере.
+    Так как Swagger UI делает xhr-запросы, при выполнении которых
+    могут возникать ограничения, связанные с CORS.
+    """,
 )
 async def vk_social_login(
     response: Response,
@@ -204,7 +211,14 @@ async def vk_callback(
     "/login",
     status_code=status.HTTP_200_OK,
     summary="OAuth 2.0 Google login",
-    description="Redirects to Google OAuth 2.0 login page.",
+    description="""
+    ## Важно
+    Для тестирования этого эндпоинта вам необходимо скопировать ссылку
+    https://localhost/api/v1/oauth/google/login
+    и вызвать ее в браузере.
+    Так как Swagger UI делает xhr-запросы, при выполнении которых
+    могут возникать ограничения, связанные с CORS.
+    """,
 )
 async def google_login():
     flow = GoogleFlow.from_client_config(
