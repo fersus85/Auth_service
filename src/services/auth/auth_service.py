@@ -242,7 +242,7 @@ class AuthService:
             return user_resp, token_resp
 
     async def login_user_oauth(
-        self, user: UserBase, user_agent: str
+        self, user: UserBase, user_agent: str, request_id: str
     ) -> tuple[UserLoginResponse, UserTokenResponse]:
         """
         Аутентификация пользователя логином и паролем.
@@ -269,7 +269,7 @@ class AuthService:
             psuid="",
         )
 
-        return await self.login_user_yndx(user_info, user_agent)
+        return await self.login_user_yndx(user_info, user_agent, request_id)
 
     async def logout_user(
         self,

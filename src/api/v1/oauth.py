@@ -269,8 +269,10 @@ async def google_callback(
         last_name=profile["names"][0].get("familyName", ""),
         # email=profile["emailAddresses"][0]["value"]
     )
-
-    user, tokens = await auth_service.login_user_oauth(user, user_agent)
+    request_id = request.headers.get("X-Request-Id")
+    user, tokens = await auth_service.login_user_oauth(
+        user, user_agent, request_id
+    )
 
     set_tokens_in_cookies(response, tokens)
 
