@@ -23,4 +23,4 @@ ENV PYTHONPATH=/app/src
 
 EXPOSE 8000
 
-CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:8000", "-k", "uvicorn_worker.UvicornWorker"]
+CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:8000", "-k", "uvicorn_worker.UvicornWorker", "--forwarded-allow-ips", "*"]
