@@ -1,0 +1,26 @@
+{
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+      "simple": {
+        "format": "%(asctime)s %(module)-16s:%(lineno)s %(levelname)-10s %(message)s",
+        "datefmt": "[%Y-%m-%d %H:%M:%S%z]"
+      }
+    },
+    "handlers": {
+      "stderr": {
+        "class": "logging.StreamHandler",
+        "level": "DEBUG",
+        "stream": "ext://sys.stderr",
+        "formatter": "simple"
+      }
+    },
+    "loggers": {
+      "root": {
+          "level": "DEBUG",
+          "handlers": [
+            "stderr"
+          ]
+        }
+      }
+}

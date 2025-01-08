@@ -21,26 +21,49 @@ class UserRoleDefault(StrEnum):
     USER = auto()
 
 
-class YndxOauthSettings(BaseSettings):
+class EnvMode(StrEnum):
+    PROD = auto()
+    TEST = auto()
+
+
+class JaegerSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_ignore_empty=True,
+        extra="ignore",
+        env_prefix="JGR_",
+    )
+    HOST: str = "jaeger"
+    PORT: str = "4317"
+
+
+class BaseOauthSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_ignore_empty=True, extra="ignore"
     )
-    YNDX_CLIENT_ID: str
-    YNDX_CLIENT_SECRET: str
-    YNDX_CODE_URL: str
-    YNDX_TOKEN_URL: str
-    YNDX_INFO_URL: str
+    CLIENT_ID: str
+    CLIENT_SECRET: str
+    CODE_URL: str
+    TOKEN_URL: str
+    INFO_URL: str
 
 
-class VKOauthSettings(BaseSettings):
+class YndxOauthSettings(BaseOauthSettings):
     model_config = SettingsConfigDict(
-        env_file=".env", env_ignore_empty=True, extra="ignore"
+        env_file=".env",
+        env_ignore_empty=True,
+        extra="ignore",
+        env_prefix="YNDX_",
     )
-    VK_CLIENT_ID: str
-    VK_CLIENT_SECRET: str
-    VK_CODE_URL: str
-    VK_TOKEN_URL: str
-    VK_INFO_URL: str
+
+
+class VKOauthSettings(BaseOauthSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_ignore_empty=True,
+        extra="ignore",
+        env_prefix="VK_",
+    )
 
 
 class GoogleOauthSettings(BaseSettings):
@@ -84,6 +107,7 @@ class Settings(BaseSettings):
     )
     PROJECT_NAME: str = "AuthService"
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ENV: str = EnvMode.PROD
 
     POSTGRES_HOST: str
     POSTGRES_PORT: int = 5432
@@ -104,6 +128,8 @@ class Settings(BaseSettings):
     JWT_TOKEN_EXPIRE_TIME_M: int = 15
 
     REQUEST_LIMIT_PER_SECOND: int = 10
+
+    jaeger: JaegerSettings = Field(default_factory=JaegerSettings)
 
     yndx_oauth: YndxOauthSettings = Field(default_factory=YndxOauthSettings)
     vk_oauth: VKOauthSettings = Field(default_factory=VKOauthSettings)
