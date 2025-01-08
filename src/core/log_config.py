@@ -2,9 +2,14 @@ import json
 import logging.config
 import pathlib
 
+from .config import settings
+
 
 def setup_logging():
-    config_file = pathlib.Path(__file__).resolve().parent / "log_config.json"
+    suf: str = settings.ENV.lower()
+    config_file = (
+        pathlib.Path(__file__).resolve().parent / f"log_{suf}_config.json"
+    )
 
     with open(config_file) as f_in:
         config = json.load(f_in)
