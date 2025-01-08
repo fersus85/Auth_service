@@ -21,6 +21,11 @@ class UserRoleDefault(StrEnum):
     USER = auto()
 
 
+class EnvMode(StrEnum):
+    PROD = auto()
+    TEST = auto()
+
+
 class YndxOauthSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_ignore_empty=True, extra="ignore"
@@ -84,6 +89,7 @@ class Settings(BaseSettings):
     )
     PROJECT_NAME: str = "AuthService"
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ENV: str = EnvMode.PROD
 
     POSTGRES_HOST: str
     POSTGRES_PORT: int = 5432
