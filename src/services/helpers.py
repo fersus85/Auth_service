@@ -28,7 +28,7 @@ async def yndx_info_request(resp_token: dict) -> dict:
     }
 
     response_info = requests.get(
-        url=settings.yndx_oauth.YNDX_INFO_URL, headers=headers
+        url=settings.yndx_oauth.INFO_URL, headers=headers
     )
     return response_info.json()
 
@@ -46,8 +46,8 @@ async def yndx_token_request(code: str) -> dict:
         dict: Словарь с токеном доступа и другой информацией,
         полученной от Yandex.
     """
-    client_id = settings.yndx_oauth.YNDX_CLIENT_ID
-    client_secret = settings.yndx_oauth.YNDX_CLIENT_SECRET
+    client_id = settings.yndx_oauth.CLIENT_ID
+    client_secret = settings.yndx_oauth.CLIENT_SECRET
     raw_str = f"{client_id}:{client_secret}"
     encoded_creds = b64encode(raw_str.encode()).decode()
 
@@ -59,7 +59,7 @@ async def yndx_token_request(code: str) -> dict:
     }
 
     token_resp = requests.post(
-        url=settings.yndx_oauth.YNDX_TOKEN_URL, headers=headers, data=data
+        url=settings.yndx_oauth.TOKEN_URL, headers=headers, data=data
     )
 
     return token_resp.json()
@@ -83,8 +83,8 @@ async def vk_token_request(
         dict: Словарь с токеном доступа и другой информацией,
         полученной от VK.
     """
-    client_id = settings.vk_oauth.VK_CLIENT_ID
-    client_secret = settings.vk_oauth.VK_CLIENT_SECRET
+    client_id = settings.vk_oauth.CLIENT_ID
+    client_secret = settings.vk_oauth.CLIENT_SECRET
     raw_str = f"{client_id}:{client_secret}"
     encoded_creds = b64encode(raw_str.encode()).decode()
 
@@ -104,7 +104,7 @@ async def vk_token_request(
     }
 
     token_resp = requests.post(
-        url=settings.vk_oauth.VK_TOKEN_URL, headers=headers, data=data
+        url=settings.vk_oauth.TOKEN_URL, headers=headers, data=data
     )
 
     return token_resp.json()
@@ -128,11 +128,11 @@ async def vk_info_request(resp_token: dict) -> dict:
 
     data = {
         "access_token": resp_token["access_token"],
-        "client_id": settings.vk_oauth.VK_CLIENT_ID,
+        "client_id": settings.vk_oauth.CLIENT_ID,
     }
 
     response_info = requests.post(
-        url=settings.vk_oauth.VK_INFO_URL, data=data, headers=headers
+        url=settings.vk_oauth.INFO_URL, data=data, headers=headers
     )
 
     return response_info.json()

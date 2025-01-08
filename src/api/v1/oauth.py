@@ -60,9 +60,9 @@ async def yndx_social_login(
         span.set_attribute("http.request_id", request_id)
         params = {
             "response_type": "code",
-            "client_id": settings.yndx_oauth.YNDX_CLIENT_ID,
+            "client_id": settings.yndx_oauth.CLIENT_ID,
         }
-        auth_url = f"{settings.yndx_oauth.YNDX_CODE_URL}?{urlencode(params)}"
+        auth_url = f"{settings.yndx_oauth.CODE_URL}?{urlencode(params)}"
         logger.warning("url: %s", auth_url)
         return RedirectResponse(auth_url)
 
@@ -139,14 +139,14 @@ async def vk_social_login(
 
     params = {
         "response_type": "code",
-        "client_id": settings.vk_oauth.VK_CLIENT_ID,
+        "client_id": settings.vk_oauth.CLIENT_ID,
         "redirect_uri": "https://localhost/api/v1/oauth/vk_callback",
         "state": state,
         "scope": "email phone",
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
     }
-    auth_url = f"{settings.vk_oauth.VK_CODE_URL}?{urlencode(params)}"
+    auth_url = f"{settings.vk_oauth.CODE_URL}?{urlencode(params)}"
 
     response = RedirectResponse(auth_url)
 
