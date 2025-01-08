@@ -6,7 +6,7 @@ from fastapi.responses import ORJSONResponse
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from api import router as api_router
-from core.config import settings
+from core.config import EnvMode, settings
 from core.log_config import setup_logging
 from exceptions.exception import exception_handlers
 from lifespan import lifespan
@@ -15,8 +15,6 @@ from tracer import configure_tracer
 
 setup_logging()
 logger = logging.getLogger(__name__)
-
-configure_tracer()
 
 
 app = FastAPI(
@@ -30,11 +28,13 @@ app = FastAPI(
     default_response_class=ORJSONResponse,
 )
 
-FastAPIInstrumentor.instrument_app(app)
 
 app.middleware("http")(log_stuff)
-app.middleware("http")(limiter)
-app.middleware("http")(before_request)
+if settings.ENV == EnvMode.PROD:
+    app.middleware("http")(limiter)
+    app.middleware("http")(before_request)
+    configure_tracer()
+    FastAPIInstrumentor.instrument_app(app)
 
 app.add_middleware(
     CORSMiddleware,
