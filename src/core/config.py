@@ -1,7 +1,10 @@
 import os
+import random
+import string
 from enum import Enum, auto
 from typing import Any, Dict
 
+import pkce
 from pydantic import Field, PostgresDsn, computed_field
 from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -24,6 +27,12 @@ class UserRoleDefault(StrEnum):
 class EnvMode(StrEnum):
     PROD = auto()
     TEST = auto()
+
+
+class AuthFlow(StrEnum):
+    YANDEX = auto()
+    VK = auto()
+    GOOGLE = auto()
 
 
 class JaegerSettings(BaseSettings):
@@ -56,6 +65,14 @@ class YndxOauthSettings(BaseOauthSettings):
         env_prefix="YNDX_",
     )
 
+    @staticmethod
+    def get_client_config() -> Dict[str, Any]:
+        params = {
+            "response_type": "code",
+            "client_id": settings.yndx_oauth.CLIENT_ID,
+        }
+        return params
+
 
 class VKOauthSettings(BaseOauthSettings):
     model_config = SettingsConfigDict(
@@ -64,6 +81,29 @@ class VKOauthSettings(BaseOauthSettings):
         extra="ignore",
         env_prefix="VK_",
     )
+
+    @staticmethod
+    def get_client_config() -> Dict[str, Any]:
+        state = "".join(
+            random.choices(string.ascii_uppercase + string.digits, k=32)
+        )
+        code_verifier, code_challenge = pkce.generate_pkce_pair()
+
+        params = {
+            "response_type": "code",
+            "client_id": settings.vk_oauth.CLIENT_ID,
+            "redirect_uri": "https://localhost/api/v1/oauth/vk_callback",
+            "state": state,
+            "scope": "email phone",
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
+        }
+
+        return {
+            "params": params,
+            "code_verifier": code_verifier,
+            "state": state,
+        }
 
 
 class GoogleOauthSettings(BaseSettings):
