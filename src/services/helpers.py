@@ -138,6 +138,27 @@ async def vk_info_request(resp_token: dict) -> dict:
     return response_info.json()
 
 
+def set_code_state_in_cookies(
+    response: Response, state: str, code_verifier: str
+) -> None:
+    """
+    Устанавливет state и code_verifier в cookies
+    """
+    response.set_cookie(
+        key="vk_oauth_state",
+        value=state,
+        httponly=True,
+        samesite="lax",
+    )
+
+    response.set_cookie(
+        key="vk_oauth_code_verifier",
+        value=code_verifier,
+        httponly=True,
+        samesite="lax",
+    )
+
+
 def set_tokens_in_cookies(
     response: Response, tokens: UserTokenResponse
 ) -> None:
