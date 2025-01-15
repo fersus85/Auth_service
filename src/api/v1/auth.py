@@ -17,11 +17,14 @@ from responses.auth_responses import (
     get_login_response,
     get_signup_response,
     get_token_refr_response,
+    get_verify_response,
 )
 from schemas.auth import (
     UserLogin,
     UserLoginResponse,
     UserTokenResponse,
+    VerifyResponse,
+    VerifyRoleToken,
     VerifyToken,
 )
 from schemas.user import UserCreate, UserRead, UserUpdate
@@ -216,7 +219,7 @@ async def password_update(
     description="User permissions verify endpoint",
 )
 async def verify_role(
-    body: VerifyToken,
+    body: VerifyRoleToken,
     auth_service: AuthService = Depends(get_auth_service),
 ) -> None:
     """
@@ -228,3 +231,22 @@ async def verify_role(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Role {body.role} is not in token roles",
         )
+
+
+@router.post(
+    "/verify_token",
+    status_code=status.HTTP_200_OK,
+    response_model=VerifyResponse,
+    summary="Verify token",
+    description="User token verify endpoint",
+    responses=get_verify_response(),
+)
+async def verify(
+    body: VerifyToken = Body(..., description="Token for verify")
+) -> dict:
+    """
+    Проверка access токена.
+    """
+    await get_user_id_from_access_token(body.access_token)
+
+    return VerifyResponse(message="User's token is valid")
