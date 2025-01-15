@@ -1,6 +1,6 @@
 from fastapi import status
 
-from schemas.auth import UserLoginResponse, UserTokenResponse
+from schemas.auth import UserLoginResponse, UserTokenResponse, VerifyResponse
 from schemas.session import HistoryRead
 from schemas.user import UserRead, UserUpdate
 
@@ -99,6 +99,21 @@ def get_history_response():
         status.HTTP_200_OK: {
             "description": "User's login history",
             "model": list[HistoryRead],
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Invalid token",
+            **get_content("Token is invalid"),
+            **get_content("Token expired"),
+        },
+    }
+    return resp
+
+
+def get_verify_response():
+    resp = {
+        status.HTTP_200_OK: {
+            "description": "User's token is valid",
+            "model": VerifyResponse,
         },
         status.HTTP_401_UNAUTHORIZED: {
             "description": "Invalid token",
