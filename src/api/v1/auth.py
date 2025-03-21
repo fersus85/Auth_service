@@ -1,6 +1,7 @@
 import logging
 from typing import Annotated
 
+import aiohttp
 from fastapi import (
     APIRouter,
     Body,
@@ -12,6 +13,7 @@ from fastapi import (
     status,
 )
 
+from core.config import settings
 from responses.auth_responses import (
     get_change_psw_response,
     get_login_response,
@@ -39,6 +41,31 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
+# @router.post(
+#     "/signup",
+#     status_code=status.HTTP_201_CREATED,
+#     response_model=UserRead,
+#     summary="User registration",
+#     description="User registration endpoint, requires username and password.",
+#     responses=get_signup_response(),
+# )
+# async def signup_user(
+#     user_create: UserCreate = Body(
+#         ...,
+#         description="login, password, email, phone (опц), first_name (опц), last_name(опц)",
+#     ),
+#     auth_service: AuthService = Depends(get_auth_service),
+# ) -> UserRead:
+#     """
+#     Регистрация нового пользователя
+#     """
+#     logger.info("signup user %s", user_create.login)
+#
+#     result = await auth_service.signup_user(user_create)
+#
+#     return result
+
+
 @router.post(
     "/signup",
     status_code=status.HTTP_201_CREATED,
@@ -48,20 +75,70 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
     responses=get_signup_response(),
 )
 async def signup_user(
+    response: Response,
     user_create: UserCreate = Body(
         ...,
-        description="login, password, first_name (опц), last_name(опц)",
+        description="login, password, email, "
+                    "phone (опц), first_name (опц), last_name(опц)",
     ),
+    user_agent: Annotated[str | None, Header()] = None,
     auth_service: AuthService = Depends(get_auth_service),
 ) -> UserRead:
     """
-    Регистрация нового пользователя
+    Регистрация нового пользователя.
+    Сначала создаём пользователя, затем вызываем сервис профилей.
     """
     logger.info("signup user %s", user_create.login)
 
-    result = await auth_service.signup_user(user_create)
+    auth_user = UserLogin(
+        login=user_create.login,
+        password=user_create.password
+    )
+    new_user = await auth_service.signup_user(auth_user)
 
-    return result
+    user, tokens = await auth_service.login_user(auth_user, user_agent)
+
+    response.set_cookie(
+        key="access_token",
+        value=tokens.access_token,
+        httponly=True,
+        samesite="lax",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=tokens.refresh_token,
+        httponly=True,
+        samesite="lax",
+    )
+
+    cookies = {
+        "access_token": tokens.access_token
+    }
+
+    # в следующей итерации заменить на создание через брокер
+    async with aiohttp.ClientSession(cookies=cookies) as session:
+        async with session.post(
+            settings.PROFILE_SERVICE_URL,
+            json=user_create.model_dump(),
+            headers={
+                "Content-Type": "application/json",
+                "accept": "application/json"
+            }
+        ) as response:
+            if response.status != status.HTTP_200_OK:
+                logger.error(
+                    "Не удалось создать профиль во внешнем сервисе. "
+                    "Статус: %s, Тело ответа: %s",
+                    response.status,
+                    await response.text()
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Пользователь создан, "
+                           "но при создании профиля возникла ошибка."
+                )
+
+    return new_user
 
 
 @router.post(

@@ -155,6 +155,8 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str = ""
 
+    PROFILE_SERVICE_URL: str = "http://localhost:8000/api/v1/profiles/"
+
     ECHO: bool = False
     ECHO_POOL: bool = False
     POOL_SIZE: int = 20

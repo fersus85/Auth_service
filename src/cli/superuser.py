@@ -8,7 +8,7 @@ from cli.su_management import (
     init_postgresql_service,
     insert_superuser,
 )
-from schemas.user import UserCreate
+from schemas.user import AdminUser
 
 app = typer.Typer()
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ async def createsuperuser(
         login (str): Логин суперпользователя.
         password (str): Пароль суперпользователя.
     """
-    credentials = UserCreate(login=login, password=password)
+    credentials = AdminUser(login=login, password=password)
     psql = await init_postgresql_service()
     try:
         async for session in psql.session_getter():

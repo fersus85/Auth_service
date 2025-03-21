@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class UserBase(BaseModel):
@@ -24,6 +24,12 @@ class UserRole(UserFull):
 
 # Ниже User для CRUD
 class UserCreate(UserBase):
+    password: str
+    email: EmailStr | None = None
+    phone: str | None = None
+
+
+class AuthUser(UserBase):
     password: str
 
 
