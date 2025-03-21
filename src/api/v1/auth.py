@@ -41,31 +41,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-# @router.post(
-#     "/signup",
-#     status_code=status.HTTP_201_CREATED,
-#     response_model=UserRead,
-#     summary="User registration",
-#     description="User registration endpoint, requires username and password.",
-#     responses=get_signup_response(),
-# )
-# async def signup_user(
-#     user_create: UserCreate = Body(
-#         ...,
-#         description="login, password, email, phone (опц), first_name (опц), last_name(опц)",
-#     ),
-#     auth_service: AuthService = Depends(get_auth_service),
-# ) -> UserRead:
-#     """
-#     Регистрация нового пользователя
-#     """
-#     logger.info("signup user %s", user_create.login)
-#
-#     result = await auth_service.signup_user(user_create)
-#
-#     return result
-
-
 @router.post(
     "/signup",
     status_code=status.HTTP_201_CREATED,
