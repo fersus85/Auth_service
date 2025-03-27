@@ -250,6 +250,11 @@ class SQLAlchemyAuthRepository(IAuthRepository):
         async with self._transaction_handler("Can't update user"):
             await self.db_session.execute(stmt)
 
+    async def delete_user(self, user_id: UUID) -> None:
+        stmt = delete(User).where(User.id == user_id)
+        async with self._transaction_handler("Can't delete user"):
+            await self.db_session.execute(stmt)
+
 
 async def get_repository(
     data_access: Any = Depends(get_data_access),

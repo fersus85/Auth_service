@@ -54,7 +54,7 @@ async def signup_user(
     user_create: UserCreate = Body(
         ...,
         description="login, password, email, "
-                    "phone (опц), first_name (опц), last_name(опц)",
+        "phone (опц), first_name (опц), last_name(опц)",
     ),
     user_agent: Annotated[str | None, Header()] = None,
     auth_service: AuthService = Depends(get_auth_service),
@@ -66,8 +66,7 @@ async def signup_user(
     logger.info("signup user %s", user_create.login)
 
     auth_user = UserLogin(
-        login=user_create.login,
-        password=user_create.password
+        login=user_create.login, password=user_create.password
     )
     new_user = await auth_service.signup_user(auth_user)
 
@@ -86,9 +85,7 @@ async def signup_user(
         samesite="lax",
     )
 
-    cookies = {
-        "access_token": tokens.access_token
-    }
+    cookies = {"access_token": tokens.access_token}
 
     # в следующей итерации заменить на создание через брокер
     async with aiohttp.ClientSession(cookies=cookies) as session:
@@ -97,20 +94,22 @@ async def signup_user(
             json=user_create.model_dump(),
             headers={
                 "Content-Type": "application/json",
-                "accept": "application/json"
-            }
+                "accept": "application/json",
+            },
         ) as response:
             if response.status != status.HTTP_200_OK:
                 logger.error(
-                    "Не удалось создать профиль во внешнем сервисе. "
+                    "Не удалось создать профиль в сервисе профилей."
                     "Статус: %s, Тело ответа: %s",
                     response.status,
-                    await response.text()
+                    await response.text(),
                 )
+
+                await auth_service.delete_user(new_user.id)
+
                 raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Пользователь создан, "
-                           "но при создании профиля возникла ошибка."
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Не удалось создать профиль в сервисе профилей.",
                 )
 
     return new_user
