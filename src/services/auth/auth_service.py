@@ -378,6 +378,14 @@ class AuthService:
 
         return False
 
+    async def delete_user(self, user_id: str) -> None:
+        """
+        Удаление пользователя.
+        """
+        await self.repository.delete_user(user_id)
+
+        return None
+
     async def _blacklist_access_token(self, encoded_jwt_token: str):
         """
         Добавление access_token в чёрный список в Redis.
